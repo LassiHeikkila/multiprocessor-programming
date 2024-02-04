@@ -1,0 +1,8 @@
+{
+    "cmake.configureOnOpen": false,
+    "files.associations": {
+        "cl.h": "c"
+    },
+    "C_Cpp.clang_format_style": "file:${workspaceFolder}/.clang-format",
+    "editor.formatOnSave": true
+}
