@@ -6,6 +6,8 @@ A simple set of routines working on OpenCL, with auxiliary functions.
 ## Matrix multiplication with OpenCL
 [main.c](main.c) contains a C program which compiles the OpenCL kernel from [mmul_kernel.cl](mmul_kernel.cl) to do matrix multiplication of two 3x3 matrices.
 
+The program was heavily inspired by the [Hands On OpenCL Exercise 6](https://github.com/HandsOnOpenCL/Exercises-Solutions/blob/master/Solutions/Exercise06/README.md).
+
 The program only calculates the following, the input matrices are not configurable at the moment:
 ```math
 
