@@ -3,8 +3,17 @@
 ## Summary of goals
 A simple set of routines working on OpenCL, with auxiliary functions.
 
+Program should be able to do:
+- matrix addition
+- grayscale conversion
+- filtering
+
+It should also be able to measure time taken by a subroutine.
+
+It should also be able to use OpenCL profiling utilities.
+
 ## Matrix multiplication with OpenCL
-[main.c](main.c) contains a C program which compiles the OpenCL kernel from [mmul_kernel.cl](mmul_kernel.cl) to do matrix multiplication of two 3x3 matrices.
+[mmul_main.c](mmul_main.c) contains a C program which compiles the OpenCL kernel from [mmul_kernel.cl](mmul_kernel.cl) to do matrix multiplication of two 3x3 matrices.
 
 The program was heavily inspired by the [Hands On OpenCL Exercise 6](https://github.com/HandsOnOpenCL/Exercises-Solutions/blob/master/Solutions/Exercise06/README.md).
 
@@ -33,15 +42,19 @@ The program only calculates the following, the input matrices are not configurab
 
 ```
 
-## Output
+### Output
 ```console
-$ ./main
+$ ./mmul_main
 Number of platforms detected: 1
 result matrix:
 30      36      42
 66      81      96
 102     126     150
 result matrix is correct!
+
+Runtime of the kernel was 17.6960 microseconds
 ```
+
+## 
 
 [< Back to top](../README.md)

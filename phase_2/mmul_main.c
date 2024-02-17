@@ -26,6 +26,7 @@ int  main() {
     cl_command_queue queue;
     cl_program       program;
     cl_kernel        kernel;
+    cl_event         profiling_evt;
     // result needs to be one bigger than the output since the output doesn't
     // contain a NULL terminator
     int N = ORDER;
@@ -58,10 +59,11 @@ int  main() {
     check_error(err, "getting context");
 
     // Create queue
-    queue = clCreateCommandQueue(context, device, 0, &err);
+    queue =
+        clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &err);
     check_error(err, "creating command queue");
 
-    program = compile_program_from_file("mmul_kernel.cl", context, &err);
+    program = compile_program_from_file("mmul_int_kernel.cl", context, &err);
     check_error(err, "compiling kernel program");
     if (program == NULL) {
         printf("got NULL program\n");
@@ -99,12 +101,15 @@ int  main() {
     // Execute the kernel N*N times
     const size_t global_ids[2] = {ORDER, ORDER};
     err = clEnqueueNDRangeKernel(queue, kernel, 2, NULL, global_ids, NULL, 0,
-                                  NULL, NULL);
+                                  NULL, &profiling_evt);
 
     check_error(err, "enqueueueueing task");
 
     err = clFinish(queue);
     check_error(err, "waiting for jobs to finish");
+
+    // get profiling information
+    (void)clWaitForEvents(1, &profiling_evt);
 
     // Read kernel output
     err = clEnqueueReadBuffer(queue, d_C, CL_TRUE, 0, sizeof(C), C, 0, NULL,
@@ -132,6 +137,19 @@ int  main() {
     } else {
         printf("result matrix is correct!\n");
     }
+
+    // printf profiling information
+    cl_ulong evt_start = 0;
+    cl_ulong evt_end = 0;
+    size_t   return_bytes = 0;
+
+    (void)clGetEventProfilingInfo(profiling_evt, CL_PROFILING_COMMAND_QUEUED,
+                                   sizeof(evt_start), &evt_start, &return_bytes);
+    (void)clGetEventProfilingInfo(profiling_evt, CL_PROFILING_COMMAND_END,
+                                   sizeof(evt_end), &evt_end, &return_bytes);
+    double runtime = (double)(evt_end - evt_start);
+
+    printf("\nRuntime of the kernel was %.4f microseconds\n", runtime * 1e-3);
 
     // Free allocated objects and memory
     clReleaseMemObject(d_A);
