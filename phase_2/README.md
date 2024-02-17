@@ -14,13 +14,13 @@ The program only calculates the following, the input matrices are not configurab
 \begin{pmatrix}
 1 & 2 & 3 \\
 4 & 5 & 6 \\
-7 & 8 & 9 \\
+7 & 8 & 9
 \end{pmatrix}
 
 \begin{pmatrix}
 1 & 2 & 3 \\
 4 & 5 & 6 \\
-7 & 8 & 9 \\
+7 & 8 & 9
 \end{pmatrix}
 
 =
@@ -28,7 +28,7 @@ The program only calculates the following, the input matrices are not configurab
 \begin{pmatrix}
 30  &  36 & 42 \\
 66  &  81 & 96 \\
-102 & 126 & 150 \\
+102 & 126 & 150
 \end{pmatrix}
 
 ```
