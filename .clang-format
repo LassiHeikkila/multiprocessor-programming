@@ -1,5 +1,17 @@
+Language: Cpp
+
 BasedOnStyle: Google
 
 IndentWidth: 4
 TabWidth: 4
-AlignConsecutiveDeclarations: AcrossEmptyLines
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+AlignArrayOfStructures: Left
+AlignAfterOpenBracket: BlockIndent
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+BreakBeforeBraces: Attach
+BinPackArguments: false
+BinPackParameters: false

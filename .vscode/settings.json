@@ -1,7 +1,12 @@
 {
     "cmake.configureOnOpen": false,
     "files.associations": {
-        "cl.h": "c"
+        "cl.h": "c",
+        "time.h": "c",
+        "time_t.h": "c",
+        "struct_tm.h": "c",
+        "struct_timespec.h": "c",
+        "queue": "c"
     },
     "C_Cpp.clang_format_style": "file:${workspaceFolder}/.clang-format",
     "editor.formatOnSave": true
