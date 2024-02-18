@@ -33,6 +33,7 @@ void mmul_f(matrix_t a, matrix_t b, matrix_t out, uint64_t *exec_ns);
 void rand_fill_matrix(matrix_t a);
 void zero_fill_matrix(matrix_t a);
 void print_matrix(matrix_t a);
+void calculate_delta_matrix(matrix_t a, matrix_t b, matrix_t out);
 bool matrices_equal(matrix_t a, matrix_t b, float epsilon);
 
 // Declarations for OpenCL helpers
@@ -130,6 +131,7 @@ bool matrices_equal(matrix_t a, matrix_t b, float epsilon) {
             delta = (delta >= 0.0f ? delta : -delta);
 
             if (delta > epsilon) {
+                printf("first delta > EPSILON at [%d][%d]\n", col, row);
                 return false;
             }
         }
@@ -145,6 +147,16 @@ void print_matrix(matrix_t a) {
             printf("%0.3f\t", a[col + (row * ORDER)]);
         }
         printf("\n");
+    }
+}
+
+void calculate_delta_matrix(matrix_t a, matrix_t b, matrix_t out) {
+    float delta = 0.0f;
+    for (int col = 0; col < ORDER; ++col) {
+        for (int row = 0; row < ORDER; ++row) {
+            delta = a[col + (row * ORDER)] - b[col + (row * ORDER)];
+            out[col + (row * ORDER)] = (delta < 0 ? -delta : delta);
+        }
     }
 }
 
@@ -246,7 +258,7 @@ void madd_f(matrix_t a, matrix_t b, matrix_t out, uint64_t *exec_ns) {
     for (int col = 0; col < ORDER; ++col) {
         for (int row = 0; row < ORDER; ++row) {
             out[col + (row * ORDER)] =
-                a[col + (row * ORDER)] + a[col + (row * ORDER)];
+                a[col + (row * ORDER)] + b[col + (row * ORDER)];
         }
     }
 
@@ -261,14 +273,14 @@ void mmul_f(matrix_t a, matrix_t b, matrix_t out, uint64_t *exec_ns) {
     struct timespec begin, end;
     clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
 
+    double tmp = 0.0;
     for (int col = 0; col < ORDER; ++col) {
         for (int row = 0; row < ORDER; ++row) {
-            float tmp = 0.0f;
+            tmp = 0.0;
             for (int k = 0; k < ORDER; ++k) {
-                tmp +=
-                    a[(col + k) + (row * ORDER)] * b[col + ((row + k) * ORDER)];
+                tmp += a[k + (row * ORDER)] * b[col + (k * ORDER)];
             }
-            out[col + (row * ORDER)] = tmp;
+            out[col + (row * ORDER)] = (float)tmp;
         }
     }
 
@@ -471,17 +483,18 @@ void d_mmul_f(matrix_t a, matrix_t b, matrix_t out, uint64_t *exec_ns) {
 
 void compare_add(matrix_t a, matrix_t b) {
     printf("comparing addition:\n");
+
     // output matrices
-    matrix_t out_plain = malloc(MATRIX_SIZE);
+    matrix_t out_plain, out_cl;
+    out_plain = malloc(MATRIX_SIZE);
     if (out_plain == NULL) {
         printf("failed to allocate out_plain!\n");
-        return;
+        goto compare_add_end;
     }
-    matrix_t out_cl = malloc(MATRIX_SIZE);
+    out_cl = malloc(MATRIX_SIZE);
     if (out_cl == NULL) {
         printf("failed to allocate out_cl!\n");
-        free(out_plain);
-        return;
+        goto compare_add_end;
     }
 
     // for profiling
@@ -501,29 +514,37 @@ void compare_add(matrix_t a, matrix_t b) {
 
     if (!matrices_equal(out_plain, out_cl, EPSILON)) {
         printf("output matrices not equal!\n");
+        matrix_t diff = malloc(MATRIX_SIZE);
+        // TODO: handle failed allocation
+        calculate_delta_matrix(out_plain, out_cl, diff);
+        print_matrix(diff);
     }
 
     printf("plain:  %ld ns\n", dur_plain);
     printf("opencl: %ld ns\n", dur_cl);
     printf("\n");
 
+compare_add_end:
     free(out_plain);
     free(out_cl);
 }
 
 void compare_mul(matrix_t a, matrix_t b) {
     printf("comparing multiplication:\n");
+
     // output matrices
-    matrix_t out_plain = malloc(MATRIX_SIZE);
+    matrix_t out_plain, out_cl;
+
+    out_plain = malloc(MATRIX_SIZE);
     if (out_plain == NULL) {
         printf("failed to allocate out_plain!\n");
-        return;
+        goto compare_mul_end;
     }
-    matrix_t out_cl = malloc(MATRIX_SIZE);
+
+    out_cl = malloc(MATRIX_SIZE);
     if (out_cl == NULL) {
         printf("failed to allocate out_cl!\n");
-        free(out_plain);
-        return;
+        goto compare_mul_end;
     }
 
     // for profiling
@@ -543,12 +564,17 @@ void compare_mul(matrix_t a, matrix_t b) {
 
     if (!matrices_equal(out_plain, out_cl, EPSILON)) {
         printf("output matrices not equal!\n");
+        matrix_t diff = malloc(MATRIX_SIZE);
+        // TODO: handle failed allocation
+        calculate_delta_matrix(out_plain, out_cl, diff);
+        print_matrix(diff);
     }
 
     printf("plain:  %ld ns\n", dur_plain);
     printf("opencl: %ld ns\n", dur_cl);
     printf("\n");
 
+compare_mul_end:
     free(out_plain);
     free(out_cl);
 }
