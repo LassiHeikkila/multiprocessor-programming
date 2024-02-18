@@ -8,13 +8,13 @@ __kernel void mmul(
     int k;
     int i = get_global_id(0);
     int j = get_global_id(1);
-    float tmp;
+    double tmp;
 
     if ((i < N) && (j < N)) {
-        tmp = 0;
+        tmp = 0.0;
         for (k = 0; k < N; k++) {
             tmp += A[i*N + k] * B[k*N + j];
         }
-        C[i*N + j] = tmp;
+        C[i*N + j] = (float)tmp;
     }
 }
