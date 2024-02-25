@@ -35,6 +35,28 @@ opencl: 201632 ns
 ```
 
 ## Grayscale conversion, image resizing and filtering
+[exercise_2/main.c](./exercise_2/main.c) contains a program which is able to downscale an image, convert an RGBA image to grayscale, and apply 5x5 smoothing filter on a grayscale image.
 
+The program is pretty well structured and the image operations are implemented in [image_operations.c](./exercise_2/image_operations.c).
+
+The program uses test images from [test_images](./exercise_2/test_images/).
+
+The program can be built by running `make` in the `exercise_2` directory.
+
+Example output:
+```console
+$ ./bin/main
+hello world!
+loading image: test_images/im1.png
+loaded image successfully!
+w: 2940 h: 2016
+scaling image by 0.25x
+converting image to grayscale
+applying filter to image
+outputting image: output_images/output_1.png
+profiling block "resizing" took 1819 µs
+profiling block "grayscaling" took 1830 µs
+profiling block "filtering" took 24794 µs
+```
 
 [< Back to top](../README.md)

@@ -8,6 +8,10 @@ AlignConsecutiveDeclarations:
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: true
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
 AlignArrayOfStructures: Left
 AlignAfterOpenBracket: BlockIndent
 AllowShortBlocksOnASingleLine: Never
@@ -15,3 +19,4 @@ AllowShortFunctionsOnASingleLine: None
 BreakBeforeBraces: Attach
 BinPackArguments: false
 BinPackParameters: false
+IncludeBlocks: Preserve
