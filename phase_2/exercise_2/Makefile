@@ -1,6 +1,6 @@
 BIN_DIR := bin
 OBJ_DIR := obj
-LODEPNG_DIR := ./dependencies/lodepng
+LODEPNG_DIR := ../../dependencies/lodepng
 CUDA_INC = /usr/local/cuda-12.3/include/
 CUDA_LIB_DIR = /usr/local/cuda-12.3/lib64/
 
