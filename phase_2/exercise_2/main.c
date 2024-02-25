@@ -27,8 +27,6 @@ int main() {
     };
     img_write_result_t output_res = {0};
 
-    puts("hello world!");
-
     puts("loading image: " TEST_IMAGE_PATH);
     load_image(TEST_IMAGE_PATH, &load_res);
     if (load_res.err) {
