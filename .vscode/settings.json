@@ -11,7 +11,8 @@
         "ios": "c",
         "image_operations.h": "c",
         "thread": "cpp",
-        "locale": "cpp"
+        "locale": "cpp",
+        "panic.h": "c"
     },
     "C_Cpp.clang_format_style": "file:${workspaceFolder}/.clang-format",
     "editor.formatOnSave": true

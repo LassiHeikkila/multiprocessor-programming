@@ -11,7 +11,7 @@
 #include "types.h"
 
 #define IMAGE_ID "0"
-#define TEST_IMAGE_PATH "test_images/im" IMAGE_ID ".png"
+#define TEST_IMAGE_PATH "../test_images/im" IMAGE_ID ".png"
 #define OUTPUT_IMAGE_PATH "output_images/output_" IMAGE_ID ".png"
 
 /* Main function */
