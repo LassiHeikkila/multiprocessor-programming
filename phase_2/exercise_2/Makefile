@@ -8,7 +8,7 @@ CUDA_LIB_DIR = /usr/local/cuda-12.3/lib64/
 
 CC = gcc
 LD = gcc
-CFLAGS = -ggdb -O0
+CFLAGS = -g -O0
 LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) -lOpenCL -lm -lc
 
 C_SRC := \

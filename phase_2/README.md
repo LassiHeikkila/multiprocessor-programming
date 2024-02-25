@@ -45,18 +45,21 @@ The program can be built by running `make` in the `exercise_2` directory.
 
 Example output:
 ```console
-$ ./bin/main
+$ bin/main
 hello world!
-loading image: test_images/im1.png
+loading image: test_images/im0.png
 loaded image successfully!
 w: 2940 h: 2016
 scaling image by 0.25x
 converting image to grayscale
 applying filter to image
-outputting image: output_images/output_1.png
-profiling block "resizing" took 1819 µs
-profiling block "grayscaling" took 1830 µs
-profiling block "filtering" took 24794 µs
+outputting image: output_images/output_0.png
+profiling block "resizing" took 1778 µs
+profiling block "grayscaling" took 1735 µs
+profiling block "filtering" took 24687 µs
 ```
+
+Note: compiler settings heavily affect the reported performance.
+The above example was done using `-g -O0` flags.
 
 [< Back to top](../README.md)
