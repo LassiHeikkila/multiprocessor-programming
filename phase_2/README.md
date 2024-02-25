@@ -64,9 +64,11 @@ The above example was done using `-g -O0` flags.
 The program transforms image [im0.png](./test_images/im0.png) into [output_0.png](./exercise_2/output_images/output_0.png):
 
 Input:
+
 ![](./test_images/im0.png)
 
 Output:
+
 ![](./exercise_2/output_images/output_0.png)
 
 
