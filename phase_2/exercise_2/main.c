@@ -88,6 +88,7 @@ int main() {
     free(load_res.img_desc.img);
     free(out.img);
     free(out_gs.img);
+    free(out_filtered.img);
 
     PROFILING_BLOCK_PRINT_US(resizing);
     PROFILING_BLOCK_PRINT_US(grayscaling);
