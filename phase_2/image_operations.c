@@ -89,9 +89,10 @@ void scale_down_image(rgba_img_t* in, rgba_img_t* out) {
     uint32_t xo = 0, xi = 0, yo = 0, yi = 0;
 
     for (yo = 0; (yo * scale_h) < hi; ++yo) {
+        yi = yo * scale_h;
+
         for (xo = 0; (xo * scale_w) < wi; ++xo) {
             xi = xo * scale_w;
-            yi = yo * scale_h;
 
             // cast to uint32_t to copy RGBA in one go
             ((rgba_t*)(out->img))[(yo * wo) + xo] =
