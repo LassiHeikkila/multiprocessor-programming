@@ -111,11 +111,9 @@ void convert_to_grayscale(rgba_img_t* in, gray_img_t* out) {
 
     out->height = h;
     out->width  = w;
+    out->img    = malloc(h * w * sizeof(gray_t));
     if (out->img == NULL) {
-        out->img = malloc(h * w * sizeof(gray_t));
-        if (out->img == NULL) {
-            panic("failed to malloc");
-        }
+        panic("failed to malloc");
     }
 
     // tmp
