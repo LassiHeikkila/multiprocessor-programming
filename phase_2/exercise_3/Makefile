@@ -15,6 +15,7 @@ LIBS = -lOpenCL -lm -lc
 C_SRC := \
 	main.c \
 	device_support.c \
+	kernel_wrappers.c \
 
 C_SRC_COMMON := \
 	../panic.c \

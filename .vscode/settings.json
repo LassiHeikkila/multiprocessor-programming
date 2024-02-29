@@ -13,7 +13,8 @@
         "thread": "cpp",
         "locale": "cpp",
         "panic.h": "c",
-        "cl_platform.h": "c"
+        "cl_platform.h": "c",
+        "random": "c"
     },
     "C_Cpp.clang_format_style": "file:${workspaceFolder}/.clang-format",
     "editor.formatOnSave": true,

@@ -27,9 +27,15 @@
 
 #define PROFILING_BLOCK_PRINT_NS(id)            \
     printf(                                     \
-        "profiling block \"%s\" took %ld µs\n", \
+        "profiling block \"%s\" took %ld ns\n", \
         #id,                                    \
         PROFLING_BLOCK_CALCULATE_NS(id)         \
     )
+
+#define PROFILING_RAW_PRINT_US(desc, ns) \
+    printf("\"%s\" took %ld µs\n", desc, (ns / 1000));
+
+#define PROFILING_RAW_PRINT_NS(desc, ns) \
+    printf("\"%s\" took %ld ns\n", desc, (ns));
 
 #endif  // _PROFILING_H_

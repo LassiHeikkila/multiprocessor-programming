@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 
 #include <CL/cl.h>
@@ -6,6 +7,9 @@
 
 #include "device_support.h"
 #include "image_operations.h"
+#include "kernel_wrappers.h"
+#include "panic.h"
+#include "profiling.h"
 #include "types.h"
 
 #define IMAGE_ID "0"
@@ -28,7 +32,6 @@ int main() {
         {NULL, 0, 0},
         0
     };
-    img_write_result_t output_res = {0};
 
     puts("loading image: " TEST_IMAGE_PATH);
     load_image(TEST_IMAGE_PATH, &load_res);
@@ -42,6 +45,12 @@ int main() {
     }
 
     puts("loaded image successfully!");
+
+    const uint32_t Wi = load_res.img_desc.width;
+    const uint32_t Hi = load_res.img_desc.height;
+
+    const uint32_t Wo = Wi / 4;
+    const uint32_t Ho = Hi / 4;
 
     // compile kernels
     // - resizing
@@ -66,6 +75,7 @@ int main() {
 
     queue = create_queue(ctx, device, &err);
     check_cl_error(err);
+    assert(queue != NULL);
 
     downscaling_program =
         compile_program_from_file(DOWNSCALING_KERNEL_SRC_PATH, ctx, &err);
@@ -92,7 +102,163 @@ int main() {
     // note about work dimensions:
     // first dimension is for x, second dimension for y
 
+    // Allocate buffers
+
+    cl_mem input_rgba_img = clCreateBuffer(
+        ctx,
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+        sizeof(rgba_t) * Wi * Hi,
+        load_res.img_desc.img,
+        &err
+    );
+    check_cl_error(err);
+
+    cl_mem downscaled_rgba_img = clCreateBuffer(
+        ctx,
+        CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
+        sizeof(rgba_t) * Wo * Ho,
+        NULL,
+        &err
+    );
+    check_cl_error(err);
+
+    cl_mem grayscaled_img = clCreateBuffer(
+        ctx,
+        CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
+        sizeof(gray_t) * Wo * Ho,
+        NULL,
+        &err
+    );
+    check_cl_error(err);
+
+    cl_mem filtered_img = clCreateBuffer(
+        ctx,
+        CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
+        sizeof(gray_t) * Wo * Ho,
+        NULL,
+        &err
+    );
+    check_cl_error(err);
+
+    // work will be split over N*N workers
+    // 256 seems to be optimal w.r.t execution time
+    const uint32_t N = 64;
+
+    // profiling events
+    cl_event downscaling_prof_evt;
+    cl_event grayscaling_prof_evt;
+    cl_event filtering_prof_evt;
+
+    // enqueue downscaling work
+    enqueue_downscaling_work(
+        queue,
+        downscaling_kernel,
+        N,
+        Wi,
+        Hi,
+        Wo,
+        Ho,
+        input_rgba_img,
+        downscaled_rgba_img,
+        &downscaling_prof_evt,
+        &err
+    );
+    check_cl_error(err);
+
+    err = clFinish(queue);
+    check_cl_error(err);
+
+    rgba_t* tmp_img_data_0 = read_device_memory(
+        queue, downscaled_rgba_img, sizeof(rgba_t) * Wo * Ho, &err
+    );
+    check_cl_error(err);
+    assert(tmp_img_data_0 != NULL);
+    rgba_img_t tmp_img_0 = {.img = tmp_img_data_0, .width = Wo, .height = Ho};
+    output_image("output_images/tmp0.png", &tmp_img_0, RGBA, NULL);
+
+    // set kernel args for grayscaling
+    // enqueue grayscaling work
+    enqueue_grayscaling_work(
+        queue,
+        grayscaling_kernel,
+        N,
+        Wo,
+        Ho,
+        downscaled_rgba_img,
+        grayscaled_img,
+        &grayscaling_prof_evt,
+        &err
+    );
+    check_cl_error(err);
+
+    err = clFinish(queue);
+    check_cl_error(err);
+
+    rgba_t* tmp_img_data_1 = read_device_memory(
+        queue, grayscaled_img, sizeof(gray_t) * Wo * Ho, &err
+    );
+    check_cl_error(err);
+    assert(tmp_img_data_1 != NULL);
+    rgba_img_t tmp_img_1 = {.img = tmp_img_data_1, .width = Wo, .height = Ho};
+    output_image("output_images/tmp1.png", &tmp_img_1, GS, NULL);
+
+    // enqueue filtering work
+    enqueue_filtering_work(
+        queue,
+        filtering_kernel,
+        N,
+        Wo,
+        Ho,
+        2,
+        grayscaled_img,
+        filtered_img,
+        &filtering_prof_evt,
+        &err
+    );
+    check_cl_error(err);
+
+    err = clFinish(queue);
+    check_cl_error(err);
+
+    gray_t* output_img_data =
+        read_device_memory(queue, filtered_img, sizeof(gray_t) * Wo * Ho, &err);
+    check_cl_error(err);
+    assert(output_img_data != NULL);
+
     // output image
+    gray_img_t output_img = {.img = output_img_data, .width = Wo, .height = Ho};
+    img_write_result_t output_res;
+    output_image(OUTPUT_IMAGE_PATH, &output_img, GS, &output_res);
+    if (output_res.err != 0) {
+        printf(
+            "failed to output image: %u (\"%s\"\n",
+            output_res.err,
+            lodepng_error_text(output_res.err)
+        );
+    }
 
     // print profiling information
+    uint64_t downscaling_ns = get_exec_ns(&downscaling_prof_evt);
+    uint64_t grayscaling_ns = get_exec_ns(&grayscaling_prof_evt);
+    uint64_t filtering_ns   = get_exec_ns(&filtering_prof_evt);
+    PROFILING_RAW_PRINT_US("downscaling", downscaling_ns);
+    PROFILING_RAW_PRINT_US("grayscaling", grayscaling_ns);
+    PROFILING_RAW_PRINT_US("filtering", filtering_ns);
+
+    // free resources
+    free(downscaling_program);
+    free(grayscaling_program);
+    free(filtering_program);
+    free(downscaling_kernel);
+    free(grayscaling_kernel);
+    free(filtering_kernel);
+    free(ctx);
+    free(device);
+    free(queue);
+    free(input_rgba_img);
+    free(downscaled_rgba_img);
+    free(grayscaled_img);
+    free(filtered_img);
+    free(output_img_data);
+    free(load_res.img_desc.img);
 }

@@ -1,9 +1,9 @@
 __kernel void downscale_kernel(
-    const int N,
-    const int Wi,
-    const int Hi,
-    const int Wo,
-    const int Ho,
+    const unsigned int N,
+    const unsigned int Wi,
+    const unsigned int Hi,
+    const unsigned int Wo,
+    const unsigned int Ho,
     __global unsigned int *in,
     __global unsigned int *out
 ) {
@@ -15,17 +15,17 @@ __kernel void downscale_kernel(
     // Wo is width of output image
     // Ho is height of output image
 
-    int i = get_global_id(0);
-    int j = get_global_id(1);
+    const unsigned int i = get_global_id(0);
+    const unsigned int j = get_global_id(1);
 
-    const int l_x = (Wi / N) * i;
-    const int h_x = (Wi / N) * (i + 1);
+    const unsigned int l_x = (Wi / N) * i;
+    const unsigned int h_x = (Wi / N) * (i + 1);
 
-    const int l_y = (Hi / N) * j;
-    const int h_y = (Hi / N) * (j + 1);
+    const unsigned int l_y = (Hi / N) * j;
+    const unsigned int h_y = (Hi / N) * (j + 1);
 
-    const int s_x = Wi / Wo;
-    const int s_y = Hi / Ho;
+    const unsigned int s_x = Wi / Wo;
+    const unsigned int s_y = Hi / Ho;
 
     unsigned int yo = 0;
     unsigned int yi = 0;
@@ -37,7 +37,7 @@ __kernel void downscale_kernel(
         for (xi = l_x; xi < h_x; xi += s_x) {
             xo = xi / s_x;
 
-            out[(yo*Wo) + xo] = in[(yi*Wi)+xi];
+            out[(yo * Wo) + xo] = in[(yi * Wi) + xi];
         }
     }
 }

@@ -57,4 +57,23 @@ cl_context create_context(cl_device_id device, cl_int *err);
  */
 cl_command_queue create_queue(cl_context ctx, cl_device_id device, cl_int *err);
 
+/*!
+ * @brief Gets profiling data from CL runtime
+ * @param[in] evt : profiling event
+ * @return execution time in nanoseconds
+ */
+uint64_t get_exec_ns(cl_event *evt);
+
+/*!
+ * @brief Read device memory into
+ * @param queue : device command queue which owns the memory
+ * @param mem : device memory
+ * @param sz : number of bytes to read
+ * @param[out] err : CL_SUCCESS for success, error code otherwise
+ * @return pointer to host buffer containing copy of device memory
+ */
+void *read_device_memory(
+    cl_command_queue queue, cl_mem mem, size_t sz, cl_int *err
+);
+
 #endif  // _DEVICE_SUPPORT_H_

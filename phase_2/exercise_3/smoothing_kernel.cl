@@ -1,8 +1,8 @@
 __kernel void smoothing_kernel(
-    const int N,
-    const int W,
-    const int H,
-    const unsigned int R,
+    const unsigned int N,
+    const unsigned int W,
+    const unsigned int H,
+    const int R,
     __global unsigned char *in,
     __global unsigned char *out
 ) {
@@ -12,26 +12,27 @@ __kernel void smoothing_kernel(
     // W is width
     // H is height
     // R is radius of smoothing mask, e.g. for 5x5 filter it is 2
+    const unsigned int A = (R+1)*(R+1); // A for area, "R*R"
 
-    int i = get_global_id(0);
-    int j = get_global_id(1);
+    const unsigned int i = get_global_id(0);
+    const unsigned int j = get_global_id(1);
 
-    const int l_x = (W / N) * i;
-    const int h_x = (W / N) * (i + 1);
+    const int l_x = (W / (N)) * i;
+    const int h_x = (W / (N)) * (i + 1);
 
-    const int l_y = (H / N) * j;
-    const int h_y = (H / N) * (j + 1);
+    const int l_y = (H / (N)) * j;
+    const int h_y = (H / (N)) * (j + 1);
 
-    unsigned int y = 0;
-    unsigned int x = 0;
+    int y = 0;
+    int x = 0;
     int dy = 0;
     int dx = 0;
-    unsigned int py = 0; // final position y
-    unsigned int px = 0; // final position x
-    unsigned int v = 0; // accumulator
+    int py = 0; // final position y
+    int px = 0; // final position x
+    unsigned int v = 0; // accumulator which is wider than inputs to avoid overflow
 
     for (y = l_y; y < h_y; ++y) {
-        for (x = l_x; y < h_x; ++x) {
+        for (x = l_x; x < h_x; ++x) {
             v = 0;
             for (dy = -R; dy <= R; ++dy) {
                 py = y + dy;
@@ -52,7 +53,7 @@ __kernel void smoothing_kernel(
                     v += (unsigned int)in[(py*W)+px];
                 }
             }
-            out[(y*W) + x] = (unsigned char)(v / (R*R));
+            out[(y*W) + x] = (unsigned char)(v / (A));
         }
     }
 }

@@ -9,7 +9,7 @@
 void check_cl_error(cl_int err) {
     if (err != CL_SUCCESS) {
         char desc[MAX_PANIC_MSG_LEN];
-        sprintf(desc, "CL error reported: %i\n", err);
+        sprintf(desc, "CL error reported: %i", err);
         panic(desc);
     }
 }
@@ -157,4 +157,45 @@ cl_command_queue create_queue(
 
     *err = CL_SUCCESS;
     return queue;
+}
+
+uint64_t get_exec_ns(cl_event *evt) {
+    // printf profiling information
+    cl_ulong evt_start = 0;
+    cl_ulong evt_end   = 0;
+
+    (void)clGetEventProfilingInfo(
+        *evt, CL_PROFILING_COMMAND_QUEUED, sizeof(evt_start), &evt_start, NULL
+    );
+    (void)clGetEventProfilingInfo(
+        *evt, CL_PROFILING_COMMAND_END, sizeof(evt_end), &evt_end, NULL
+    );
+
+    return (uint64_t)(evt_end - evt_start);
+}
+
+void *read_device_memory(
+    cl_command_queue queue, cl_mem mem, size_t sz, cl_int *err
+) {
+    uint8_t *buf = malloc(sz);
+    if (buf == NULL) {
+        return NULL;
+    }
+
+    cl_int internal_err;
+    if (err == NULL) {
+        err = &internal_err;
+    }
+
+    internal_err =
+        clEnqueueReadBuffer(queue, mem, CL_TRUE, 0, sz, buf, 0, NULL, NULL);
+
+    if (internal_err != CL_SUCCESS) {
+        *err = internal_err;
+        free(buf);
+        return NULL;
+    }
+
+    *err = CL_SUCCESS;
+    return buf;
 }
