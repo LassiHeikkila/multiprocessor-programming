@@ -15,16 +15,16 @@ C_SRC := \
 	main.c \
 
 C_SRC_COMMON := \
-	../panic.c \
-	../image_operations.c \
+	../../src/panic.c \
+	../../src/image_operations.c \
 
 C_INC := \
 	. \
-	.. \
+	../../inc \
 	$(LODEPNG_DIR) \
 
 C_OBJS := $(addprefix $(OBJ_DIR)/,$(patsubst %.c,%.o,$(C_SRC)))
-C_OBJS += $(addprefix $(OBJ_DIR)/,$(patsubst ../%.c,%.o,$(C_SRC_COMMON)))
+C_OBJS += $(addprefix $(OBJ_DIR)/,$(patsubst ../../src/%.c,%.o,$(C_SRC_COMMON)))
 C_OBJS += $(OBJ_DIR)/lodepng.o
 
 build: $(BIN_DIR)/main
@@ -48,7 +48,7 @@ $(OBJ_DIR)/%.o: %.c | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CC) -I $(CUDA_INC) $(addprefix -I,$(C_INC)) $(CFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: ../%.c | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: ../../src/%.c | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CC) -I $(CUDA_INC) $(addprefix -I,$(C_INC)) $(CFLAGS) -c -o $@ $<
 
