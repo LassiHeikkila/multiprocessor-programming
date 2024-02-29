@@ -73,5 +73,33 @@ Output:
 
 
 ## Grayscale conversion, image resizing and filtering (in OpenCL)
+[exercise_3/main.c](./exercise_3/main.c) contains a program which is able to downscale an image, convert an RGBA image to grayscale, and apply 5x5 smoothing filter on a grayscale image using OpenCL kernels running on a GPU.
+
+The program uses test images from [test_images](./test_images/).
+
+The program can be built by running `make` in the `exercise_3` directory.
+
+Example output:
+```console
+$ bin/main                                        
+hello world
+loading image: ../test_images/im0.png
+loaded image successfully!
+input image: 2940x2016 rgba
+output image: 735x504 grayscale
+"downscaling" took 349 µs
+"grayscaling" took 250 µs
+"filtering" took 2229 µs
+```
+
+The program transforms image [im0.png](./test_images/im0.png) into [output_0.png](./exercise_3/output_images/output_0.png):
+
+Input:
+
+![](./test_images/im0.png)
+
+Output:
+
+![](./exercise_3/output_images/output_0.png)
 
 [< Back to top](../README.md)
