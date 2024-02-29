@@ -118,7 +118,7 @@ int main() {
 
     cl_mem downscaled_rgba_img = clCreateBuffer(
         ctx,
-        CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
+        CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS,
         sizeof(rgba_t) * Wo * Ho,
         NULL,
         &err
@@ -127,7 +127,7 @@ int main() {
 
     cl_mem grayscaled_img = clCreateBuffer(
         ctx,
-        CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
+        CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS,
         sizeof(gray_t) * Wo * Ho,
         NULL,
         &err
@@ -171,14 +171,6 @@ int main() {
     err = clFinish(queue);
     check_cl_error(err);
 
-    rgba_t* tmp_img_data_0 = read_device_memory(
-        queue, downscaled_rgba_img, sizeof(rgba_t) * Wo * Ho, &err
-    );
-    check_cl_error(err);
-    assert(tmp_img_data_0 != NULL);
-    rgba_img_t tmp_img_0 = {.img = tmp_img_data_0, .width = Wo, .height = Ho};
-    output_image("output_images/tmp0.png", &tmp_img_0, RGBA, NULL);
-
     // set kernel args for grayscaling
     // enqueue grayscaling work
     enqueue_grayscaling_work(
@@ -196,14 +188,6 @@ int main() {
 
     err = clFinish(queue);
     check_cl_error(err);
-
-    rgba_t* tmp_img_data_1 = read_device_memory(
-        queue, grayscaled_img, sizeof(gray_t) * Wo * Ho, &err
-    );
-    check_cl_error(err);
-    assert(tmp_img_data_1 != NULL);
-    rgba_img_t tmp_img_1 = {.img = tmp_img_data_1, .width = Wo, .height = Ho};
-    output_image("output_images/tmp1.png", &tmp_img_1, GS, NULL);
 
     // enqueue filtering work
     enqueue_filtering_work(
