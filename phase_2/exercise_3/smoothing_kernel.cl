@@ -12,7 +12,7 @@ __kernel void smoothing_kernel(
     // W is width
     // H is height
     // R is radius of smoothing mask, e.g. for 5x5 filter it is 2
-    const unsigned int A = (R+1)*(R+1); // A for area, "R*R"
+    const unsigned int A = ((2*R)+1)*((2*R)+1); // A for area, "R*R"
 
     const unsigned int i = get_global_id(0);
     const unsigned int j = get_global_id(1);
