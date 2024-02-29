@@ -52,6 +52,9 @@ int main() {
     const uint32_t Wo = Wi / 4;
     const uint32_t Ho = Hi / 4;
 
+    printf("input image: %dx%d rgba\n", Wi, Hi);
+    printf("output image: %dx%d grayscale\n", Wo, Ho);
+
     // compile kernels
     // - resizing
     // - grayscaling
@@ -141,8 +144,8 @@ int main() {
     check_cl_error(err);
 
     // work will be split over N*N workers
-    // 256 seems to be optimal w.r.t execution time
-    const uint32_t N = 64;
+    // 50 seems to be optimal w.r.t execution time
+    const uint32_t N = 50;
 
     // profiling events
     cl_event downscaling_prof_evt;

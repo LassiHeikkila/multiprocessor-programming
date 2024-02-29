@@ -17,11 +17,14 @@ __kernel void smoothing_kernel(
     const unsigned int i = get_global_id(0);
     const unsigned int j = get_global_id(1);
 
-    const int l_x = (W / (N)) * i;
-    const int h_x = (W / (N)) * (i + 1);
-
-    const int l_y = (H / (N)) * j;
-    const int h_y = (H / (N)) * (j + 1);
+    const unsigned int mw = W % N;              // modulo width
+    const unsigned int mh = H % N;              // modulo height
+    const unsigned int sw = (W - mw) / N;       // segment width
+    const unsigned int sh = (H - mh) / N;       // segment height
+    const unsigned int lx = sw * i;             // low x
+    const unsigned int hx = sw * (i + 1) + ((i == (N-1)) ? mw : 0); // high x
+    const unsigned int ly = sh * j;             // low y
+    const unsigned int hy = sh * (j + 1) + ((j == (N-1)) ? mh : 0); // high y
 
     int y = 0;
     int x = 0;
@@ -31,8 +34,8 @@ __kernel void smoothing_kernel(
     int px = 0; // final position x
     unsigned int v = 0; // accumulator which is wider than inputs to avoid overflow
 
-    for (y = l_y; y < h_y; ++y) {
-        for (x = l_x; x < h_x; ++x) {
+    for (y = ly; y < hy; ++y) {
+        for (x = lx; x < hx; ++x) {
             v = 0;
             for (dy = -R; dy <= R; ++dy) {
                 py = y + dy;
