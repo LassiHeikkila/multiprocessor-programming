@@ -15,7 +15,6 @@
 
 #define WINDOW_WIDTH 9u
 #define WINDOW_HEIGHT 9u
-#define WINDOW_AREA (WINDOW_WIDTH * WINDOW_HEIGHT)
 #define MAX_DISP 260u
 #define MAX_GS_VALUE 255u
 
@@ -182,10 +181,6 @@ int main() {
     scale_down_image(&img_left.img_desc, &img_left_ds);
     scale_down_image(&img_right.img_desc, &img_right_ds);
 
-    // input images no longer needed
-    free(img_left.img_desc.img);
-    free(img_right.img_desc.img);
-
     // convert to grayscale
     gray_img_t img_left_gs  = {.img = NULL};
     gray_img_t img_right_gs = {.img = NULL};
@@ -206,18 +201,19 @@ int main() {
 
     int32_t *window_buf_left =
         malloc(sizeof(int32_t) * WINDOW_WIDTH * WINDOW_HEIGHT);
+    assert(window_buf_left != NULL);
+
     int32_t *window_buf_right =
         malloc(sizeof(int32_t) * WINDOW_WIDTH * WINDOW_HEIGHT);
+    assert(window_buf_right != NULL);
 
     gray_t *disparity_image = malloc(sizeof(gray_t) * W * H);
+    assert(disparity_image != NULL);
 
     printf("computing depthmap:\n");
 
-    double progress = 0.0;
-
     for (uint32_t y = 0; y < H; ++y) {
-        progress = ((double)y / (double)H) * 100.0;
-        printf("\rprogress %03.2f%%", progress);
+        printf("\rprogress %03.2f%%", ((double)y / (double)H) * 100.0);
         fflush(stdout);
 
         for (uint32_t x = 0; x < W; ++x) {
@@ -316,6 +312,8 @@ int main() {
         );
     }
 
+    free(img_left.img_desc.img);
+    free(img_right.img_desc.img);
     free(window_buf_left);
     free(window_buf_right);
     free(disparity_image);

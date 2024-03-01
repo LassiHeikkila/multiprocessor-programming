@@ -54,4 +54,4 @@ $(OBJ_DIR)/%.o: ../../src/%.c | $(OBJ_DIR)
 
 $(OBJ_DIR)/lodepng.o: $(LODEPNG_DIR)/lodepng.c | $(OBJ_DIR)
 	@echo "Compiling lodepng.c"
-	$(CC) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<

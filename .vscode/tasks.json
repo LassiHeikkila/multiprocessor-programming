@@ -29,6 +29,24 @@
 				"isDefault": true
 			},
 			"detail": "compiler: /usr/bin/clang"
+		},
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"rebuild"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
 		}
 	]
 }
