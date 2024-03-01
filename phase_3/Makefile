@@ -8,8 +8,9 @@ CUDA_LIB_DIR = /usr/local/cuda-12.3/lib64/
 
 CC = gcc
 LD = gcc
-CFLAGS = -g -O0
-LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) -lOpenCL -lm -lc
+CFLAGS = -g -O2
+LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) 
+LIBS = -lOpenCL -lm -lc
 
 C_SRC := \
 	main.c \
@@ -42,7 +43,7 @@ $(OBJ_DIR):
 
 $(BIN_DIR)/main: $(C_OBJS) | $(BIN_DIR)
 	@echo "Linking final executable"
-	$(LD) $(LDFLAGS) -o $@ $^
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 $(OBJ_DIR)/%.o: %.c | $(OBJ_DIR)
 	@echo "Compiling $<"
@@ -54,4 +55,4 @@ $(OBJ_DIR)/%.o: ../src/%.c | $(OBJ_DIR)
 
 $(OBJ_DIR)/lodepng.o: $(LODEPNG_DIR)/lodepng.c | $(OBJ_DIR)
 	@echo "Compiling lodepng.c"
-	$(CC) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
