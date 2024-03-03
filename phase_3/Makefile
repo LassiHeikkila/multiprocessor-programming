@@ -6,14 +6,19 @@ CUDA_LIB_DIR = /usr/local/cuda-12.3/lib64/
 
 .PHONY: build rebuild clean
 
-CC = gcc
-LD = gcc
+CC = clang
+LD = clang
 CFLAGS = -g -O0
-LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) 
+
+# if you want to use AddressSanitizer, uncomment below
+#CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+
+LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) -Wl,-Map,$(BIN_DIR)/main.map
 LIBS = -lOpenCL -lm -lc
 
 C_SRC := \
 	main.c \
+	zncc_operations.c \
 
 C_SRC_COMMON := \
 	../src/panic.c \
@@ -28,7 +33,7 @@ C_OBJS := $(addprefix $(OBJ_DIR)/,$(patsubst %.c,%.o,$(C_SRC)))
 C_OBJS += $(addprefix $(OBJ_DIR)/,$(patsubst ../src/%.c,%.o,$(C_SRC_COMMON)))
 C_OBJS += $(OBJ_DIR)/lodepng.o
 
-build: $(BIN_DIR)/main
+build: $(BIN_DIR)/main $(BIN_DIR)/main.map $(BIN_DIR)/main.disassembly
 
 clean:
 	@rm -rf $(BIN_DIR) $(OBJ_DIR)
@@ -40,6 +45,11 @@ $(BIN_DIR):
 
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
+
+$(BIN_DIR)/main.map: $(BIN_DIR)/main
+
+$(BIN_DIR)/main.disassembly: $(BIN_DIR)/main
+	objdump -d -S --source-comment="<src>" $< > $@
 
 $(BIN_DIR)/main: $(C_OBJS) | $(BIN_DIR)
 	@echo "Linking final executable"

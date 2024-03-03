@@ -30,7 +30,7 @@ void output_image(
     unsigned int err = 0;
 
     switch (palette) {
-        case RGBA:
+        case RGBA: {
             rgba_img_t* rgba_img = (rgba_img_t*)img;
 
             err = lodepng_encode32_file(
@@ -40,7 +40,8 @@ void output_image(
                 rgba_img->height
             );
             break;
-        case GS:
+        }
+        case GS: {
             gray_img_t* gs_img = (gray_img_t*)img;
 
             err = lodepng_encode_file(
@@ -52,6 +53,7 @@ void output_image(
                 8
             );
             break;
+        }
         default:
             panic("unsupported palette");
     }
