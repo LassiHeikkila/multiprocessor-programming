@@ -1,3 +1,6 @@
 [submodule "phase_2/exercise_2/dependencies/lodepng"]
 	path = dependencies/lodepng
 	url = git@github.com:LassiHeikkila/lodepng.git
+[submodule "dependencies/munit"]
+	path = dependencies/munit
+	url = git@github.com:nemequ/munit.git
