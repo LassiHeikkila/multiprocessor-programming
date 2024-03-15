@@ -20,3 +20,5 @@ BreakBeforeBraces: Attach
 BinPackArguments: false
 BinPackParameters: false
 IncludeBlocks: Preserve
+PointerAlignment: Right
+ContinuationIndentWidth: 4

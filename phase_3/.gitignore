@@ -1,2 +1,6 @@
 bin/
 obj/
+
+# ignore coverage info
+coverage/
+test.info
