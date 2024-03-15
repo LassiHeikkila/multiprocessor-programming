@@ -6,22 +6,42 @@
 
 #include "image_operations.h"
 #include "panic.h"
+#include "profiling.h"
 #include "types.h"
 #include "zncc_operations.h"
 
 #define IMAGE_PATH_LEFT "./test_images/im0.png"
 #define IMAGE_PATH_RIGHT "./test_images/im1.png"
-#define IMAGE_PATH_OUT "./output_images/depthmap.png"
+#define IMAGE_PATH_RAW_OUT_LEFT_TO_RIGHT "./output_images/depthmap_raw_ltr.png"
+#define IMAGE_PATH_RAW_OUT_RIGHT_TO_LEFT "./output_images/depthmap_raw_rtl.png"
+#define IMAGE_PATH_CROSSCHECKED_OUT "./output_images/depthmap_cc.png"
+
+#define SCALING_FACTOR_WIDTH 4
+#define SCALING_FACTOR_HEIGHT 4
 
 #define WINDOW_WIDTH 9u
 #define WINDOW_HEIGHT 9u
-#define MAX_DISP 260u
+#define WINDOW_SIZE (WINDOW_WIDTH * WINDOW_HEIGHT)
+#define MAX_DISP (260u / SCALING_FACTOR_WIDTH)
 #define MAX_GS_VALUE 255u
+#define CROSSCHECK_THRESHOLD 8
+
+void output_grayscale_float_image(
+    const char *path, double *img, uint32_t W, uint32_t H, double max
+);
+
+void output_grayscale_int32_image(
+    const char *path, int32_t *img, uint32_t W, uint32_t H, int32_t max
+);
 
 int main() {
     // load images from disk
     img_load_result_t img_left;
     img_load_result_t img_right;
+
+    PROFILING_BLOCK_DECLARE(preprocessing);
+    PROFILING_BLOCK_DECLARE(zncc_calculation);
+    PROFILING_BLOCK_DECLARE(postprocessing);
 
     printf("loading images...\n");
 
@@ -47,16 +67,18 @@ int main() {
 
     printf("pre-processing images...\n");
 
+    PROFILING_BLOCK_BEGIN(preprocessing);
+
     // downscale
     rgba_img_t img_left_ds = {
         .img    = NULL,
-        .width  = img_left.img_desc.width / 4,
-        .height = img_left.img_desc.height / 4
+        .width  = img_left.img_desc.width / SCALING_FACTOR_WIDTH,
+        .height = img_left.img_desc.height / SCALING_FACTOR_HEIGHT
     };
     rgba_img_t img_right_ds = {
         .img    = NULL,
-        .width  = img_right.img_desc.width / 4,
-        .height = img_right.img_desc.height / 4
+        .width  = img_right.img_desc.width / SCALING_FACTOR_WIDTH,
+        .height = img_right.img_desc.height / SCALING_FACTOR_HEIGHT
     };
     scale_down_image(&img_left.img_desc, &img_left_ds);
     scale_down_image(&img_right.img_desc, &img_right_ds);
@@ -76,106 +98,155 @@ int main() {
     free(img_left_ds.img);
     free(img_right_ds.img);
 
-    assert(img_left_gs.width == img_right_gs.width);
-    assert(img_left_gs.height == img_right_gs.height);
+    float_img_t img_left_f  = {.img = NULL};
+    float_img_t img_right_f = {.img = NULL};
 
-    // ZNCC
-    const uint32_t W = img_left_gs.width;
-    const uint32_t H = img_left_gs.height;
+    convert_to_float(&img_left_gs, &img_left_f);
+    convert_to_float(&img_right_gs, &img_right_f);
 
-    int32_t *window_buf_left =
-        malloc(sizeof(int32_t) * WINDOW_WIDTH * WINDOW_HEIGHT);
-    assert(window_buf_left != NULL);
+    // don't need GS images anymore
+    free(img_left_gs.img);
+    free(img_right_gs.img);
 
-    int32_t *window_buf_right =
-        malloc(sizeof(int32_t) * WINDOW_WIDTH * WINDOW_HEIGHT);
-    assert(window_buf_right != NULL);
+    assert(img_left_f.width == img_right_f.width);
+    assert(img_left_f.height == img_right_f.height);
 
-    gray_t *disparity_image = malloc(sizeof(gray_t) * W * H);
-    assert(disparity_image != NULL);
-    memset(disparity_image, 0, sizeof(gray_t) * W * H);
+    const uint32_t W = img_left_f.width;
+    const uint32_t H = img_left_f.height;
 
-    printf("computing depthmap:\n");
+    printf("preprocessing data windows...\n");
 
-    uint32_t x, y, d;
-    int32_t  max_sum;
-    int32_t  best_disparity;
-    int32_t  mean_left;
-    int32_t  stddev_left;
-    int32_t  mean_right;
-    int32_t  stddev_right;
-    int32_t  zncc;
+    const size_t preprocessed_window_size = sizeof(double) * WINDOW_SIZE;
+    const size_t windows_count            = W * H;
 
-    for (y = 0; y < H; ++y) {
-        printf("\rprogress %03.2f%%", ((double)y / (double)H) * 100.0);
-        fflush(stdout);
+    // lots of data, around 8GB in total with full size images
+    // should not be an issue on typical machines
 
-        for (x = 0; x < W; ++x) {
-            extract_window(
-                img_left_gs.img,
-                window_buf_left,
-                x,
-                y,
-                WINDOW_WIDTH,
-                WINDOW_HEIGHT,
-                W,
-                H
-            );
+    double *preprocessed_windows_left =
+        malloc(preprocessed_window_size * windows_count);
+    double *preprocessed_windows_right =
+        malloc(preprocessed_window_size * windows_count);
 
-            mean_left = calculate_window_mean(
-                window_buf_left, WINDOW_WIDTH, WINDOW_HEIGHT
-            );
-            stddev_left = calculate_window_standard_deviation(
-                window_buf_left, WINDOW_WIDTH, WINDOW_HEIGHT, mean_left
-            );
-            zero_mean_window(
-                window_buf_left, WINDOW_WIDTH, WINDOW_HEIGHT, mean_left
-            );
-            normalize_window(
-                window_buf_left, WINDOW_WIDTH, WINDOW_HEIGHT, stddev_left
-            );
+    assert(preprocessed_windows_left != NULL);
+    assert(preprocessed_windows_right != NULL);
 
-            max_sum        = 0;
-            best_disparity = 0;
+    double *mean_left  = malloc(sizeof(double) * W * H);
+    double *mean_right = malloc(sizeof(double) * W * H);
+    double *std_left   = malloc(sizeof(double) * W * H);
+    double *std_right  = malloc(sizeof(double) * W * H);
 
-            for (d = 0; d < MAX_DISP; ++d) {
-                if (d > x) {
-                    // would go out of bounds
-                    break;
-                }
+    for (uint32_t y = 0; y < H; ++y) {
+        printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
+        for (uint32_t x = 0; x < W; ++x) {
+            // left
+            {
+                double *window =
+                    &preprocessed_windows_left[((y * W) + x) * WINDOW_SIZE];
 
                 extract_window(
-                    img_right_gs.img,
-                    window_buf_right,
-                    x - d,
+                    img_left_f.img,
+                    window,
+                    x,
                     y,
                     WINDOW_WIDTH,
                     WINDOW_HEIGHT,
                     W,
                     H
                 );
-
-                mean_right = calculate_window_mean(
-                    window_buf_right, WINDOW_WIDTH, WINDOW_HEIGHT
+                double mean =
+                    calculate_window_mean(window, WINDOW_WIDTH, WINDOW_HEIGHT);
+                double stddev = calculate_window_standard_deviation(
+                    window, WINDOW_WIDTH, WINDOW_HEIGHT, mean
                 );
+                zero_mean_window(window, WINDOW_WIDTH, WINDOW_HEIGHT, mean);
+                normalize_window(window, WINDOW_WIDTH, WINDOW_HEIGHT, stddev);
 
-                stddev_right = calculate_window_standard_deviation(
-                    window_buf_right, WINDOW_WIDTH, WINDOW_HEIGHT, mean_right
-                );
+                mean_left[(y * W) + x] = mean;
+                std_left[(y * W) + x]  = stddev;
+            }
 
-                zero_mean_window(
-                    window_buf_right, WINDOW_WIDTH, WINDOW_HEIGHT, mean_right
-                );
-
-                normalize_window(
-                    window_buf_right, WINDOW_WIDTH, WINDOW_HEIGHT, stddev_right
-                );
-
-                zncc = sum_of_elementwise_multiply_windows(
-                    window_buf_left,
-                    window_buf_right,
+            // right
+            {
+                double *window =
+                    &preprocessed_windows_right[((y * W) + x) * WINDOW_SIZE];
+                extract_window(
+                    img_right_f.img,
+                    window,
+                    x,
+                    y,
                     WINDOW_WIDTH,
-                    WINDOW_HEIGHT
+                    WINDOW_HEIGHT,
+                    W,
+                    H
+                );
+                double mean =
+                    calculate_window_mean(window, WINDOW_WIDTH, WINDOW_HEIGHT);
+                double stddev = calculate_window_standard_deviation(
+                    window, WINDOW_WIDTH, WINDOW_HEIGHT, mean
+                );
+                zero_mean_window(window, WINDOW_WIDTH, WINDOW_HEIGHT, mean);
+                normalize_window(window, WINDOW_WIDTH, WINDOW_HEIGHT, stddev);
+
+                mean_right[(y * W) + x] = mean;
+                std_right[(y * W) + x]  = stddev;
+            }
+        }
+    }
+    printf("\rprogress: 100.00%%\n\n");
+
+    PROFILING_BLOCK_END(preprocessing);
+
+    output_grayscale_float_image(
+        "./output_images/mean_left.png", mean_left, W, H, (double)MAX_GS_VALUE
+    );
+    output_grayscale_float_image(
+        "./output_images/mean_right.png", mean_right, W, H, (double)MAX_GS_VALUE
+    );
+    output_grayscale_float_image(
+        "./output_images/std_left.png", std_left, W, H, (double)MAX_GS_VALUE
+    );
+    output_grayscale_float_image(
+        "./output_images/std_right.png", std_right, W, H, (double)MAX_GS_VALUE
+    );
+
+    // don't need float input images anymore
+    free(img_left_f.img);
+    free(img_right_f.img);
+
+    // ZNCC
+    PROFILING_BLOCK_BEGIN(zncc_calculation);
+
+    int32_t *disparity_image_left = malloc(sizeof(int32_t) * W * H);
+    assert(disparity_image_left != NULL);
+    memset(disparity_image_left, 0, sizeof(int32_t) * W * H);
+
+    int32_t *disparity_image_right = malloc(sizeof(int32_t) * W * H);
+    assert(disparity_image_right != NULL);
+    memset(disparity_image_right, 0, sizeof(int32_t) * W * H);
+
+    printf("computing depthmap left to right:\n");
+    // LEFT to RIGHT
+    for (uint32_t y = 0; y < H; ++y) {
+        printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
+        fflush(stdout);
+
+        for (uint32_t x = 0; x < W; ++x) {
+            double  max_sum        = 0;
+            int32_t best_disparity = 0;
+            double *window_left =
+                &preprocessed_windows_left[((y * W) + x) * WINDOW_SIZE];
+
+            for (int32_t d = 0; d < MAX_DISP; ++d) {
+                if (d > x) {
+                    // would go out of bounds
+                    break;
+                }
+
+                double *window_right = &preprocessed_windows_right
+                                           [((y * W) + (x - d)) * WINDOW_SIZE];
+
+                double zncc = window_dot_product(
+                    window_left, window_right, WINDOW_WIDTH, WINDOW_HEIGHT
                 );
 
                 if (zncc > max_sum) {
@@ -184,36 +255,170 @@ int main() {
                 }
             }
 
-            disparity_image[(y * W) + x] =
-                (gray_t)(best_disparity * MAX_GS_VALUE / MAX_DISP);
+            disparity_image_left[(y * W) + x] = best_disparity;
+        }
+    }
+    printf("\rprogress: 100.00%%\n\n");
+
+    printf("computing depthmap right to left:\n");
+    // RIGHT to LEFT
+    for (uint32_t y = 0; y < H; ++y) {
+        printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
+        fflush(stdout);
+
+        for (uint32_t x = 0; x < W; ++x) {
+            double  max_sum        = 0;
+            int32_t best_disparity = 0;
+
+            double *window_right =
+                &preprocessed_windows_right[((y * W) + x) * WINDOW_SIZE];
+
+            for (int32_t d = 0; d < MAX_DISP; ++d) {
+                if (d > (W - x - 1)) {
+                    // would go out of bounds
+                    break;
+                }
+
+                double *window_left = &preprocessed_windows_left
+                                          [((y * W) + (x + d)) * WINDOW_SIZE];
+
+                double zncc = window_dot_product(
+                    window_left, window_right, WINDOW_WIDTH, WINDOW_HEIGHT
+                );
+
+                if (zncc > max_sum) {
+                    max_sum        = zncc;
+                    best_disparity = d;
+                }
+            }
+
+            disparity_image_right[(y * W) + x] = best_disparity;
+        }
+    }
+    printf("\rprogress: 100.00%%\n\n");
+
+    PROFILING_BLOCK_END(zncc_calculation);
+
+    printf("outputting raw depthmaps\n");
+
+    output_grayscale_int32_image(
+        IMAGE_PATH_RAW_OUT_LEFT_TO_RIGHT, disparity_image_left, W, H, MAX_DISP
+    );
+    output_grayscale_int32_image(
+        IMAGE_PATH_RAW_OUT_RIGHT_TO_LEFT, disparity_image_right, W, H, MAX_DISP
+    );
+
+    int32_t *combined = malloc(sizeof(int32_t) * W * H);
+    assert(combined != NULL);
+
+    PROFILING_BLOCK_BEGIN(postprocessing);
+
+    printf("cross-checking...\n");
+    for (uint32_t y = 0; y < H; ++y) {
+        printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
+        fflush(stdout);
+        for (uint32_t x = 0; x < W; ++x) {
+            int32_t disparity = disparity_image_left[(y * W) + x];
+
+            int32_t delta = disparity_image_left[(y * W) + (x)] -
+                            disparity_image_right[(y * W) + (x - disparity)];
+
+            if (delta < 0) {
+                delta = -delta;
+            }
+
+            combined[(y * W) + x] =
+                (delta <= CROSSCHECK_THRESHOLD
+                     ? disparity_image_left[(y * W) + x]
+                     : 0);
+        }
+    }
+    printf("\rprogress: 100.00%%\n\n");
+
+    printf("filling empty regions...\n");
+    for (uint32_t y = 0; y < H; ++y) {
+        printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
+        fflush(stdout);
+
+        for (uint32_t x = 0; x < W; ++x) {
+            int32_t curr = combined[(y * W) + x];
+            if (curr == 0) {
+                int32_t nnzn =
+                    find_nearest_nonzero_neighbour(combined, W, H, x, y);
+                combined[(y * W) + x] = nnzn;
+            }
+        }
+    }
+    printf("\rprogress: 100.00%%\n\n");
+
+    PROFILING_BLOCK_END(postprocessing);
+
+    printf("output crosschecked depthmap\n");
+
+    output_grayscale_int32_image(
+        IMAGE_PATH_CROSSCHECKED_OUT, combined, W, H, MAX_DISP
+    );
+
+    free(preprocessed_windows_left);
+    free(preprocessed_windows_right);
+    free(disparity_image_left);
+    free(disparity_image_right);
+    free(combined);
+
+    PROFILING_BLOCK_PRINT_MS(preprocessing);
+    PROFILING_BLOCK_PRINT_S(zncc_calculation);
+    PROFILING_BLOCK_PRINT_MS(postprocessing);
+
+    return 0;
+}
+
+void output_grayscale_float_image(
+    const char *path, double *img, uint32_t W, uint32_t H, double max
+) {
+    assert(path != NULL);
+    assert(img != NULL);
+
+    gray_t *out = malloc(sizeof(gray_t) * W * H);
+    assert(out != NULL);
+
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            out[(y * W) + x] =
+                (gray_t)(img[(y * W) + x] * (double)MAX_GS_VALUE / max);
         }
     }
 
-    printf("\rprogress: 100.00%%\n\n");
+    gray_img_t         desc = {.img = out, .width = W, .height = H};
+    img_write_result_t res  = {.err = 0};
+    output_image(path, &desc, GS, &res);
+    free(out);
 
-    // don't need GS input images anymore
-    free(img_left_gs.img);
-    free(img_right_gs.img);
+    if (res.err != 0) {
+        panic("failed to output image!");
+    }
+}
 
-    gray_img_t disparity_image_desc = {
-        .img = disparity_image, .width = W, .height = H
-    };
+void output_grayscale_int32_image(
+    const char *path, int32_t *img, uint32_t W, uint32_t H, int32_t max
+) {
+    assert(path != NULL);
+    assert(img != NULL);
 
-    printf("outputting depthmap to " IMAGE_PATH_OUT "\n");
+    gray_t *out = malloc(sizeof(gray_t) * W * H);
+    assert(out != NULL);
 
-    img_write_result_t output_res = {.err = 0};
-    output_image(IMAGE_PATH_OUT, &disparity_image_desc, GS, &output_res);
-    if (output_res.err != 0) {
-        printf(
-            "output error %u: %s\n",
-            output_res.err,
-            lodepng_error_text(output_res.err)
-        );
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            out[(y * W) + x] = (gray_t)(img[(y * W) + x] * MAX_GS_VALUE / max);
+        }
     }
 
-    free(window_buf_left);
-    free(window_buf_right);
-    free(disparity_image);
+    gray_img_t         desc = {.img = out, .width = W, .height = H};
+    img_write_result_t res  = {.err = 0};
+    output_image(path, &desc, GS, &res);
+    free(out);
 
-    return 0;
+    if (res.err != 0) {
+        panic("failed to output image!");
+    }
 }

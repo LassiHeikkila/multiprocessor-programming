@@ -6,8 +6,8 @@
 #include "types.h"
 
 void extract_window(
-    gray_t        *in,
-    int32_t       *out,
+    double        *in,
+    double        *out,
     const uint32_t x_offset,
     const uint32_t y_offset,
     const uint32_t win_width,
@@ -16,22 +16,26 @@ void extract_window(
     const uint32_t in_height
 );
 
-int32_t calculate_window_mean(int32_t *img, const uint32_t W, const uint32_t H);
+double calculate_window_mean(double *img, const uint32_t W, const uint32_t H);
 
-int32_t calculate_window_standard_deviation(
-    int32_t *img, const uint32_t W, const uint32_t H, const int32_t window_mean
+double calculate_window_standard_deviation(
+    double *img, const uint32_t W, const uint32_t H, const double window_mean
 );
 
 void zero_mean_window(
-    int32_t *img, const uint32_t W, const uint32_t H, const int32_t window_mean
+    double *img, const uint32_t W, const uint32_t H, const double window_mean
 );
 
 void normalize_window(
-    int32_t *img, const uint32_t W, const uint32_t H, const int32_t std_dev
+    double *img, const uint32_t W, const uint32_t H, const double std_dev
 );
 
-int32_t sum_of_elementwise_multiply_windows(
-    int32_t *left, int32_t *right, const uint32_t W, const uint32_t H
+double window_dot_product(
+    double *left, double *right, const uint32_t W, const uint32_t H
+);
+
+int32_t find_nearest_nonzero_neighbour(
+    int32_t *img, uint32_t W, uint32_t H, uint32_t x, uint32_t y
 );
 
 #endif  // _ZNCC_OPERATIONS_H_
