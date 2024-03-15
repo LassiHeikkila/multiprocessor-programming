@@ -24,6 +24,8 @@ void scale_down_image(rgba_img_t* in, rgba_img_t* out);
 
 void convert_to_grayscale(rgba_img_t* in, gray_img_t* out);
 
+void convert_to_float(gray_img_t* in, float_img_t* out);
+
 void apply_filter(gray_img_t* in, gray_img_t* out);
 
 #endif  // _IMAGE_OPERATIONS_H_

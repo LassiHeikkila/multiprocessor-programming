@@ -188,3 +188,25 @@ void apply_filter(gray_img_t* in, gray_img_t* out) {
     }
     // clang-format on
 }
+
+void convert_to_float(gray_img_t* in, float_img_t* out) {
+    if (in == NULL || out == NULL || in->height == 0 || in->width == 0) {
+        panic("bad arguments to \"convert_to_float\"");
+    }
+
+    const uint32_t h = in->height;
+    const uint32_t w = in->width;
+
+    out->height = h;
+    out->width  = w;
+    out->img    = malloc(h * w * sizeof(double));
+    if (out->img == NULL) {
+        panic("failed to malloc");
+    }
+
+    for (uint32_t y = 0; y < h; ++y) {
+        for (uint32_t x = 0; x < w; ++x) {
+            out->img[(y * w) + x] = (double)(in->img[(y * w) + x]);
+        }
+    }
+}
