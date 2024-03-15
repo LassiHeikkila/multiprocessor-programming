@@ -30,6 +30,12 @@ typedef struct {
 } gray_img_t;
 
 typedef struct {
+    double*  img;
+    uint32_t width;
+    uint32_t height;
+} float_img_t;
+
+typedef struct {
     rgba_img_t   img_desc;
     unsigned int err;
 } img_load_result_t;
