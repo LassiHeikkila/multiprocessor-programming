@@ -18,6 +18,20 @@
                 ((profiling_##id##_end).tv_nsec -           \
                  (profiling_##id##_begin).tv_nsec)))
 
+#define PROFILING_BLOCK_PRINT_S(id)                              \
+    printf(                                                      \
+        "profiling block \"%s\" took %0.3f s\n",                 \
+        #id,                                                     \
+        (double)(PROFLING_BLOCK_CALCULATE_NS(id)) / 1000000000.0 \
+    )
+
+#define PROFILING_BLOCK_PRINT_MS(id)                          \
+    printf(                                                   \
+        "profiling block \"%s\" took %0.3f ms\n",             \
+        #id,                                                  \
+        (double)(PROFLING_BLOCK_CALCULATE_NS(id)) / 1000000.0 \
+    )
+
 #define PROFILING_BLOCK_PRINT_US(id)            \
     printf(                                     \
         "profiling block \"%s\" took %ld µs\n", \
