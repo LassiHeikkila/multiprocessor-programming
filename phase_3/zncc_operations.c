@@ -1,7 +1,9 @@
 #include "zncc_operations.h"
 #include "coord_fifo.h"
+#include "panic.h"
 
 #include <math.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -130,8 +132,18 @@ double window_dot_product(
 }
 
 int32_t find_nearest_nonzero_neighbour(
-    int32_t *img, uint32_t W, uint32_t H, uint32_t x, uint32_t y
+    int32_t      *img,
+    uint32_t      W,
+    uint32_t      H,
+    uint32_t      x,
+    uint32_t      y,
+    uint8_t      *visited,
+    coord_fifo_t *fifo
 ) {
+    bool         free_visited      = false;
+    bool         free_fifo_storage = false;
+    coord_fifo_t local_fifo;
+
     if (x >= W || y >= H) {
         return 0;
     }
@@ -140,53 +152,66 @@ int32_t find_nearest_nonzero_neighbour(
         return img[(y * W) + x];
     }
 
-    uint8_t *visited = malloc(sizeof(uint8_t) * W * H);
+    if (visited == NULL) {
+        visited      = malloc(sizeof(uint8_t) * W * H);
+        free_visited = true;
+    }
     memset(visited, 0, sizeof(uint8_t) * W * H);
-    coord_fifo_t fifo = {
-        .storage  = malloc(sizeof(coord_t) * W * H),
-        .read     = 0,
-        .write    = 0,
-        .capacity = W * H
-    };
+    if (fifo == NULL) {
+        free_fifo_storage = true;
+        fifo              = &local_fifo;
+        fifo->storage     = malloc(sizeof(coord_t) * W * H);
+        fifo->capacity    = W * H;
+    }
+    if (fifo->storage == NULL) {
+        panic("NULL fifo->storage!");
+    }
+    fifo->read  = 0;
+    fifo->write = 0;
 
     visited[(y * W) + x] = 1;
     coord_t *curr        = NULL;
-    coord_fifo_enqueue(&fifo, (coord_t){y, x});
+    coord_fifo_enqueue(fifo, (coord_t){.x = x, .y = y});
 
 #define IN_BOUNDS(coord) \
     (coord.x >= 0 && coord.x < W && coord.y >= 0 && coord.y < H)
 
-    while (coord_fifo_len(&fifo) > 0) {
-        curr = coord_fifo_dequeue(&fifo);
+#define COORD_PTR_TO_IDX(coord) ((coord->y * W) + coord->x)
+#define COORD_TO_IDX(coord) ((coord.y * W) + coord.x)
+
+#define VISITED(coord) (visited[(coord.y * W) + coord.x] == 1)
+
+    while (coord_fifo_len(fifo) > 0) {
+        curr = coord_fifo_dequeue(fifo);
         if (curr == NULL) {
             break;
         }
         if (!(IN_BOUNDS((*curr)))) {
             break;
         }
-        if (img[(curr->y * W) + curr->x] != 0) {
+        if (img[COORD_PTR_TO_IDX(curr)] != 0) {
             break;
         }
         // BFS, look right, down, left, and up if not already visited
         coord_t right = {.x = curr->x + 1, .y = curr->y};
-        if (IN_BOUNDS(right) && !visited[(right.y * W) + right.x]) {
-            visited[(right.y * W) + right.x] = 1;
-            coord_fifo_enqueue(&fifo, right);
+        if (IN_BOUNDS(right) && !VISITED(right)) {
+            visited[COORD_TO_IDX(right)] = 1;
+            coord_fifo_enqueue(fifo, right);
         }
         coord_t down = {.x = curr->x, .y = curr->y + 1};
-        if (IN_BOUNDS(down) && !visited[(down.y * W) + down.x]) {
-            visited[(down.y * W) + down.x] = 1;
-            coord_fifo_enqueue(&fifo, down);
+        if (IN_BOUNDS(down) && !VISITED(down)) {
+            visited[COORD_TO_IDX(down)] = 1;
+            coord_fifo_enqueue(fifo, down);
         }
         coord_t left = {.x = curr->x - 1, .y = curr->y};
-        if (IN_BOUNDS(left) && !visited[(left.y * W) + left.x]) {
-            visited[(left.y * W) + left.x] = 1;
-            coord_fifo_enqueue(&fifo, left);
+        if (IN_BOUNDS(left) && !VISITED(left)) {
+            visited[COORD_TO_IDX(left)] = 1;
+            coord_fifo_enqueue(fifo, left);
         }
         coord_t up = {.x = curr->x, .y = curr->y - 1};
-        if (IN_BOUNDS(up) && !visited[(up.y * W) + up.x]) {
-            visited[(up.y * W) + up.x] = 1;
-            coord_fifo_enqueue(&fifo, up);
+        if (IN_BOUNDS(up) && !VISITED(up)) {
+            visited[COORD_TO_IDX(up)] = 1;
+            coord_fifo_enqueue(fifo, up);
         }
     }
 
@@ -195,8 +220,12 @@ int32_t find_nearest_nonzero_neighbour(
         ret = img[(curr->y * W) + curr->x];
     }
 
-    free(visited);
-    free(fifo.storage);
+    if (free_visited) {
+        free(visited);
+    }
+    if (free_fifo_storage) {
+        free(fifo->storage);
+    }
 
     return ret;
 }

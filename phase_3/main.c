@@ -114,7 +114,7 @@ int main() {
     const uint32_t W = img_left_f.width;
     const uint32_t H = img_left_f.height;
 
-    printf("preprocessing data windows...\n");
+    printf("pre-processing data windows...\n");
 
     const size_t preprocessed_window_size = sizeof(double) * WINDOW_SIZE;
     const size_t windows_count            = W * H;
@@ -212,6 +212,12 @@ int main() {
     // don't need float input images anymore
     free(img_left_f.img);
     free(img_right_f.img);
+
+    // don't need intermediate images either
+    free(mean_left);
+    free(mean_right);
+    free(std_left);
+    free(std_right);
 
     // ZNCC
     PROFILING_BLOCK_BEGIN(zncc_calculation);
@@ -336,6 +342,13 @@ int main() {
     printf("\rprogress: 100.00%%\n\n");
 
     printf("filling empty regions...\n");
+    uint8_t     *visited = malloc(W * H * sizeof(uint8_t));
+    coord_fifo_t fifo    = {
+           .storage  = malloc(W * H * sizeof(coord_t)),
+           .read     = 0,
+           .write    = 0,
+           .capacity = W * H
+    };
     for (uint32_t y = 0; y < H; ++y) {
         printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
         fflush(stdout);
@@ -343,12 +356,15 @@ int main() {
         for (uint32_t x = 0; x < W; ++x) {
             int32_t curr = combined[(y * W) + x];
             if (curr == 0) {
-                int32_t nnzn =
-                    find_nearest_nonzero_neighbour(combined, W, H, x, y);
+                int32_t nnzn = find_nearest_nonzero_neighbour(
+                    combined, W, H, x, y, visited, &fifo
+                );
                 combined[(y * W) + x] = nnzn;
             }
         }
     }
+    free(fifo.storage);
+    free(visited);
     printf("\rprogress: 100.00%%\n\n");
 
     PROFILING_BLOCK_END(postprocessing);

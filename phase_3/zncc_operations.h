@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "coord_fifo.h"
 #include "types.h"
 
 void extract_window(
@@ -35,7 +36,13 @@ double window_dot_product(
 );
 
 int32_t find_nearest_nonzero_neighbour(
-    int32_t *img, uint32_t W, uint32_t H, uint32_t x, uint32_t y
+    int32_t      *img,
+    uint32_t      W,
+    uint32_t      H,
+    uint32_t      x,
+    uint32_t      y,
+    uint8_t      *visited,
+    coord_fifo_t *fifo
 );
 
 #endif  // _ZNCC_OPERATIONS_H_

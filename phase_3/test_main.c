@@ -353,13 +353,26 @@ MunitResult test_find_nearest_nonzero_neighbour(
     };
     // clang-format on
 
-    int32_t got0  = find_nearest_nonzero_neighbour(map, 10, 10, 0, 0);
+    int32_t got0 =
+        find_nearest_nonzero_neighbour(map, 10, 10, 0, 0, NULL, NULL);
     int32_t want0 = 2;
     munit_assert_int32(want0, ==, got0);
 
-    int32_t got1  = find_nearest_nonzero_neighbour(map, 10, 10, 5, 5);
+    int32_t got1 =
+        find_nearest_nonzero_neighbour(map, 10, 10, 5, 5, NULL, NULL);
     int32_t want1 = 7;
     munit_assert_int32(want1, ==, got1);
+
+    int32_t got2 =
+        find_nearest_nonzero_neighbour(map, 10, 10, 2, 2, NULL, NULL);
+    int32_t want2 = 2;
+    munit_assert_int32(want2, ==, got2);
+
+    // out of bounds check
+    int32_t got3 =
+        find_nearest_nonzero_neighbour(map, 10, 10, 15, 15, NULL, NULL);
+    int32_t want3 = 0;
+    munit_assert_int32(want3, ==, got3);
 
     // clang-format off
     int32_t empty_map[] = {
@@ -376,9 +389,86 @@ MunitResult test_find_nearest_nonzero_neighbour(
     };
     // clang-format on
 
-    int32_t got_empty = find_nearest_nonzero_neighbour(empty_map, 10, 10, 5, 5);
+    int32_t got_empty =
+        find_nearest_nonzero_neighbour(empty_map, 10, 10, 5, 5, NULL, NULL);
     int32_t want_empty = 0;
     munit_assert_int32(want_empty, ==, got_empty);
+
+    return MUNIT_OK;
+}
+
+MunitResult test_find_nearest_nonzero_neighbour_prealloc(
+    const MunitParameter params[], void* data
+) {
+    (void)params;
+    (void)data;
+
+    uint8_t*     visited = malloc(10 * 10 * sizeof(uint8_t));
+    coord_fifo_t fifo    = {
+           .storage  = malloc(sizeof(coord_t) * 10 * 10),
+           .read     = 0,
+           .write    = 0,
+           .capacity = 10 * 10
+    };
+
+    // clang-format off
+    int32_t map[] = {
+        0, 0, 0, 3, 4, 5, 6, 7, 8, 9,
+        0, 0, 0, 3, 4, 5, 6, 7, 8, 9,
+        2, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+        3, 1, 2, 0, 0, 0, 0, 0, 8, 9,
+        4, 1, 2, 0, 0, 0, 0, 0, 8, 9,
+        5, 1, 2, 0, 0, 0, 0, 7, 8, 9,
+        6, 1, 2, 0, 0, 0, 0, 0, 8, 9,
+        7, 1, 2, 0, 0, 0, 0, 0, 8, 9,
+        8, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+        9, 1, 2, 3, 4, 5, 6, 7, 8, 9
+    };
+    // clang-format on
+
+    int32_t got0 =
+        find_nearest_nonzero_neighbour(map, 10, 10, 0, 0, visited, &fifo);
+    int32_t want0 = 2;
+    munit_assert_int32(want0, ==, got0);
+
+    int32_t got1 =
+        find_nearest_nonzero_neighbour(map, 10, 10, 5, 5, visited, &fifo);
+    int32_t want1 = 7;
+    munit_assert_int32(want1, ==, got1);
+
+    int32_t got2 =
+        find_nearest_nonzero_neighbour(map, 10, 10, 2, 2, visited, &fifo);
+    int32_t want2 = 2;
+    munit_assert_int32(want2, ==, got2);
+
+    // out of bounds check
+    int32_t got3 =
+        find_nearest_nonzero_neighbour(map, 10, 10, 15, 15, visited, &fifo);
+    int32_t want3 = 0;
+    munit_assert_int32(want3, ==, got3);
+
+    // clang-format off
+    int32_t empty_map[] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+    // clang-format on
+
+    int32_t got_empty =
+        find_nearest_nonzero_neighbour(empty_map, 10, 10, 5, 5, visited, &fifo);
+    int32_t want_empty = 0;
+    munit_assert_int32(want_empty, ==, got_empty);
+
+    free(visited);
+    free(fifo.storage);
 
     return MUNIT_OK;
 }
@@ -486,6 +576,14 @@ int main(int argc, char* argv[MUNIT_ARRAY_PARAM(argc + 1)]) {
         {
             "find_nearest_nonzero_neighbour",
             test_find_nearest_nonzero_neighbour,
+            NULL,
+            NULL,
+            MUNIT_TEST_OPTION_NONE,
+            NULL
+        },
+        {
+            "find_nearest_nonzero_neighbour_prealloc",
+            test_find_nearest_nonzero_neighbour_prealloc,
             NULL,
             NULL,
             MUNIT_TEST_OPTION_NONE,
