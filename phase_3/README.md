@@ -19,7 +19,8 @@ The execution is split into four parts:
 3. computing depthmaps
    - left to right
    - right to left
-4. 
+4. cross-checking left-to-right and right-to-left depthmaps, filling zero regions
+
 
 ## Unit tests
 Some unit tests are implemented in [test_main.c] using [µnit](https://github.com/nemequ/munit) unit testing library. 
