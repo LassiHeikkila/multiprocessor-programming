@@ -11,12 +11,12 @@ CUDA_LIB_DIR = /usr/local/cuda-12.3/lib64/
 # coverage doesn't work on my machine with clang due to gcov version incompatibility
 CC = clang
 LD = clang
-CFLAGS = -g -O0 -Wall
+CFLAGS = -g -O2 -Wall
 
 CFLAGS_TEST = --coverage
 
 # if you want to use AddressSanitizer, uncomment below and switch to clang
-CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+#CFLAGS += -fsanitize=address -fno-omit-frame-pointer
 
 LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) -Wl,-Map,$(BIN_DIR)/main.map
 LIBS = -lOpenCL -lm -lc
