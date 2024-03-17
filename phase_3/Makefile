@@ -16,7 +16,7 @@ CFLAGS = -g -O0 -Wall
 CFLAGS_TEST = --coverage
 
 # if you want to use AddressSanitizer, uncomment below and switch to clang
-#CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+CFLAGS += -fsanitize=address -fno-omit-frame-pointer
 
 LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) -Wl,-Map,$(BIN_DIR)/main.map
 LIBS = -lOpenCL -lm -lc
@@ -69,9 +69,11 @@ test: C_INC += $(C_INC_TEST)
 test: $(BIN_DIR)/test_main
 	$(BIN_DIR)/test_main
 
+coverage: CC = gcc
+coverage: LD = gcc
 coverage: clean | $(OBJ_DIR)
 	lcov --directory $(OBJ_DIR) --zerocounters
-	$(MAKE) test
+	$(MAKE) test CC=$(CC) LD=$(LD)
 	lcov --directory $(OBJ_DIR) --capture --output-file test.info --ignore-errors version,gcov
 	genhtml -o $(COVERAGE_DIR) --exclude "dependencies" test.info
 
