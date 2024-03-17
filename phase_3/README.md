@@ -48,14 +48,14 @@ Measured on a `i7-8850H` CPU with reported 5200 bogomips, clocking up to 4100MHz
 There is some variance from one run to the next, as expected.
 
 Pre-processed data windows take up most of the memory, as they require
-$$
+```math
 \begin{align}
 \text{size} &= \text{image width} * \text{image height} * \text{window width} * \text{window height} * \text{sizeof(double)} \\
 &= 735 * 504 * 9 * 9 * 8 \\
 &= 240045120 \\
 &\approx 240 \space \text{MB}
 \end{align}
-$$
+```
 
 per image!
 
