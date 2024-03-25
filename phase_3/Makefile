@@ -19,7 +19,7 @@ CFLAGS_TEST = --coverage
 #CFLAGS += -fsanitize=address -fno-omit-frame-pointer
 
 LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) -Wl,-Map,$(BIN_DIR)/main.map
-LIBS = -lOpenCL -lm -lc
+LIBS = -lm -lc
 
 C_SRC_MAIN := \
 	$(C_SRC) \

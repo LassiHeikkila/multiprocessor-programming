@@ -26,6 +26,8 @@
 #define MAX_GS_VALUE 255u
 #define CROSSCHECK_THRESHOLD 8
 
+#define PROGRESS_PRINTS 0
+
 void output_grayscale_float_image(
     const char *path, double *img, uint32_t W, uint32_t H, double max
 );
@@ -136,7 +138,9 @@ int main() {
     double *std_right  = malloc(sizeof(double) * W * H);
 
     for (uint32_t y = 0; y < H; ++y) {
+#if PROGRESS_PRINTS == 1
         printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
+#endif
         for (uint32_t x = 0; x < W; ++x) {
             // left
             {
@@ -192,8 +196,9 @@ int main() {
             }
         }
     }
+#if PROGRESS_PRINTS == 1
     printf("\rprogress: 100.00%%\n\n");
-
+#endif
     PROFILING_BLOCK_END(preprocessing);
 
     output_grayscale_float_image(
@@ -233,8 +238,10 @@ int main() {
     printf("computing depthmap left to right:\n");
     // LEFT to RIGHT
     for (uint32_t y = 0; y < H; ++y) {
+#if PROGRESS_PRINTS == 1
         printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
         fflush(stdout);
+#endif
 
         for (uint32_t x = 0; x < W; ++x) {
             double  max_sum        = 0;
@@ -264,14 +271,16 @@ int main() {
             disparity_image_left[(y * W) + x] = best_disparity;
         }
     }
+#if PROGRESS_PRINTS == 1
     printf("\rprogress: 100.00%%\n\n");
-
+#endif
     printf("computing depthmap right to left:\n");
     // RIGHT to LEFT
     for (uint32_t y = 0; y < H; ++y) {
+#if PROGRESS_PRINTS == 1
         printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
         fflush(stdout);
-
+#endif
         for (uint32_t x = 0; x < W; ++x) {
             double  max_sum        = 0;
             int32_t best_disparity = 0;
@@ -301,7 +310,9 @@ int main() {
             disparity_image_right[(y * W) + x] = best_disparity;
         }
     }
+#if PROGRESS_PRINTS == 1
     printf("\rprogress: 100.00%%\n\n");
+#endif
 
     PROFILING_BLOCK_END(zncc_calculation);
 
@@ -321,8 +332,10 @@ int main() {
 
     printf("cross-checking...\n");
     for (uint32_t y = 0; y < H; ++y) {
+#if PROGRESS_PRINTS == 1
         printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
         fflush(stdout);
+#endif
         for (uint32_t x = 0; x < W; ++x) {
             int32_t disparity = disparity_image_left[(y * W) + x];
 
@@ -339,7 +352,9 @@ int main() {
                      : 0);
         }
     }
+#if PROGRESS_PRINTS == 1
     printf("\rprogress: 100.00%%\n\n");
+#endif
 
     printf("filling empty regions...\n");
     uint8_t     *visited = malloc(W * H * sizeof(uint8_t));
@@ -350,8 +365,10 @@ int main() {
            .capacity = W * H
     };
     for (uint32_t y = 0; y < H; ++y) {
+#if PROGRESS_PRINTS == 1
         printf("\rprogress: %03.2f%%", ((double)y / (double)H) * 100.0);
         fflush(stdout);
+#endif
 
         for (uint32_t x = 0; x < W; ++x) {
             int32_t curr = combined[(y * W) + x];
@@ -365,7 +382,9 @@ int main() {
     }
     free(fifo.storage);
     free(visited);
+#if PROGRESS_PRINTS == 1
     printf("\rprogress: 100.00%%\n\n");
+#endif
 
     PROFILING_BLOCK_END(postprocessing);
 

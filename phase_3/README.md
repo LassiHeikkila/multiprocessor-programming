@@ -107,4 +107,6 @@ The broom is also distinguished from the wall.
 
 There are some artifacts still present, especially noticeable on the wall and near the borders.
 
+Intermediate images such as window means, window standard deviations, and raw ZNCC data are also included in the `output_images` directory.
+
 [< Back to top](../README.md)
