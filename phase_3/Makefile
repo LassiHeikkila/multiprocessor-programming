@@ -1,6 +1,5 @@
 BIN_DIR := bin
 OBJ_DIR := obj
-COVERAGE_DIR := coverage
 LODEPNG_DIR := ../dependencies/lodepng
 MUNIT_DIR := ../dependencies/munit
 CUDA_INC = /usr/local/cuda-12.3/include/
@@ -8,12 +7,9 @@ CUDA_LIB_DIR = /usr/local/cuda-12.3/lib64/
 
 .PHONY: build rebuild clean
 
-# coverage doesn't work on my machine with clang due to gcov version incompatibility
 CC = clang
 LD = clang
 CFLAGS = -g -O2 -Wall
-
-CFLAGS_TEST = --coverage
 
 # if you want to use AddressSanitizer, uncomment below and switch to clang
 #CFLAGS += -fsanitize=address -fno-omit-frame-pointer
