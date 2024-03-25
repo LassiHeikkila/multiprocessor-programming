@@ -4,7 +4,7 @@ LODEPNG_DIR  := ../../dependencies/lodepng
 CUDA_INC     := /usr/local/cuda-12.3/include/
 CUDA_LIB_DIR := /usr/local/cuda-12.3/lib64/
 
-.PHONY: build rebuild clean
+.PHONY: build rebuild clean run
 
 CC = gcc
 LD = gcc
@@ -36,6 +36,10 @@ clean:
 	@rm -rf $(BIN_DIR) $(OBJ_DIR)
 
 rebuild: clean build
+
+run: $(BIN_DIR)/main
+	@echo "Running phase 2 exercise 3"
+	$(BIN_DIR)/main
 
 $(BIN_DIR):
 	@mkdir -p $(BIN_DIR)
