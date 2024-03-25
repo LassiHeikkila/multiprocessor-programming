@@ -77,7 +77,7 @@ OpenMP `omp_get_max_threads()` reports 12.
 
 We can see that each phase is accelerated by 5-6x.
 
-The generated depthmap is found here [](./output_images/depthmap_cc.png) together with intermediate images.
+The generated depthmap is found [here](./output_images/depthmap_cc.png) together with intermediate images.
 The result is identical to the single-threaded version.
 
 [< Back to top](../README.md)
