@@ -31,6 +31,8 @@ jobs:
     needs: build-image
     steps:
     - uses: actions/checkout@v3
+      with:
+        submodules: recursive
     - name: Download image artifact
       uses: actions/download-artifact@v3
       with:
