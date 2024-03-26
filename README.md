@@ -1,4 +1,6 @@
 # Multiprocessor Programming
+![CI status](https://github.com/LassiHeikkila/multiprocessor-programming/actions/workflows/CI.yml/badge.svg)
+
 
 Assignment for Multiprocessor Programming course (521288S) at University of Oulu
 
