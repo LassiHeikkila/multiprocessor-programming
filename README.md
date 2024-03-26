@@ -11,8 +11,9 @@ Group: Lassi Heikkilä
 The assignment consists of several phases.
 Use the links below to navigate to the phase you are interested in.
 
-The host code is written in C. 
-Algorithm kernels are written using OpenMP for phase 4 and OpenCL for phases 5 and 6.
+The host code is written in C.
+
+Algorithm kernels are written using OpenCL for phases 5 and 6.
 
 > Note: reported coverage is for files from `src/` except for `device_support.c`
 
