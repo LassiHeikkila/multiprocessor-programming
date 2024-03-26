@@ -3,6 +3,7 @@
 ![Branch coverage](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2FLassiHeikkila%2F2cc186f7491127168e70d457b16fe950%2Fraw%2Fcoverage_summary.json&query=%24.branch_percent&suffix=%25&label=Branch%20coverage&link=https%3A%2F%2Fgist.githubusercontent.com%2FLassiHeikkila%2F2cc186f7491127168e70d457b16fe950%2Fraw%2Fcoverage_summary.json)
 ![Line coverage](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2FLassiHeikkila%2F2cc186f7491127168e70d457b16fe950%2Fraw%2Fcoverage_summary.json&query=%24.line_percent&suffix=%25&label=Line%20coverage&link=https%3A%2F%2Fgist.githubusercontent.com%2FLassiHeikkila%2F2cc186f7491127168e70d457b16fe950%2Fraw%2Fcoverage_summary.json)
 
+
 Assignment for Multiprocessor Programming course (521288S) at University of Oulu
 
 Group: Lassi Heikkilä
@@ -13,7 +14,7 @@ Use the links below to navigate to the phase you are interested in.
 The host code is written in C. 
 Algorithm kernels are written using OpenMP for phase 4 and OpenCL for phases 5 and 6.
 
-Phase 7 will be implemented in Javascript and WebGPU.
+> Note: reported coverage is for files from `src/` except for `device_support.c`
 
 # Phases
 
