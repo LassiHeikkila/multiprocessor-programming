@@ -1,6 +1,7 @@
 # Multiprocessor Programming
 ![CI status](https://github.com/LassiHeikkila/multiprocessor-programming/actions/workflows/CI.yml/badge.svg)
-![Code coverage](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2FLassiHeikkila%2F2cc186f7491127168e70d457b16fe950%2Fraw%2Fcoverage_summary.json&query=%24.branch_percent&suffix=%25&label=Code%20coverage)
+![Branch coverage](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2FLassiHeikkila%2F2cc186f7491127168e70d457b16fe950%2Fraw%2Fcoverage_summary.json&query=%24.branch_percent&suffix=%25&label=Branch%20coverage&link=https%3A%2F%2Fgist.githubusercontent.com%2FLassiHeikkila%2F2cc186f7491127168e70d457b16fe950%2Fraw%2Fcoverage_summary.json)
+![Line coverage](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2FLassiHeikkila%2F2cc186f7491127168e70d457b16fe950%2Fraw%2Fcoverage_summary.json&query=%24.line_percent&suffix=%25&label=Line%20coverage&link=https%3A%2F%2Fgist.githubusercontent.com%2FLassiHeikkila%2F2cc186f7491127168e70d457b16fe950%2Fraw%2Fcoverage_summary.json)
 
 Assignment for Multiprocessor Programming course (521288S) at University of Oulu
 
