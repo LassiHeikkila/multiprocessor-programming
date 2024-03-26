@@ -44,3 +44,8 @@ jobs:
       run: docker run --rm -v "$(pwd)":/code -w /code mp-build:latest make test
     - name: Measure coverage
       run: docker run --rm -v "$(pwd)":/code -w /code mp-build:latest make coverage
+    - name: Coverage summary JSON upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-summary
+        path: ./test/coverage_summary.json

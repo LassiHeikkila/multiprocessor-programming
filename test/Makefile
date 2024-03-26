@@ -53,7 +53,7 @@ test: $(BIN_DIR)/test_main
 coverage: clean | $(OBJ_DIR)
 ifeq ($(DEBIAN_FRONTEND),noninteractive)
 	$(MAKE) test
-	gcovr -r .. -s -e "../dependencies/*" -e test_main.c
+	gcovr -r .. --json-summary -e "../dependencies/*" -e test_main.c --output coverage_summary.json
 else
 	lcov --directory $(OBJ_DIR) --zerocounters
 	$(MAKE) test
