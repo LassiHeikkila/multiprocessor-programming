@@ -27,6 +27,7 @@ jobs:
       run: make test
 
   coverage:
+    runs-on: ubuntu-latest
     container:
       image: mp-build:$(date +%s)
 
