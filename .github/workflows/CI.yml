@@ -1,0 +1,37 @@
+name: Run unit tests and measure coverage in Docker
+
+on:
+  push:
+    brances: [ main ]
+  pull_request:
+    brances: [ main ]
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag mp-build:$(date +%s)
+
+  test:
+    runs-on: ubuntu-latest
+    container:
+    - image: mp-build:$(date +%s)
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Run unit tests
+      run: make test
+
+  coverage:
+    container:
+    - image: mp-build:$(date +%s)
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Measure coverage
+      run: make coverage

@@ -17,7 +17,8 @@ C_SRC_COMMON := \
 	../src/image_operations.c \
 	../src/zncc_operations.c \
 	../src/coord_fifo.c \
-	../src/device_support.c \
+
+#	../src/device_support.c \
 
 C_INC := \
 	. \
@@ -39,19 +40,26 @@ vpath %.c . ../src
 # coverage doesn't work on my machine with clang due to gcov version incompatibility
 CC = gcc
 LD = gcc
-CFLAGS = -g -O2 -Wall --coverage -DCL_TARGET_OPENCL_VERSION=120
+CFLAGS = -g -O2 -Wall --coverage -DCL_TARGET_OPENCL_VERSION=120 -flto
 
 LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) -Wl,-Map,$(BIN_DIR)/main.map
-LIBS = -lOpenCL -lm -lc
+LIBS = -lm -lc
+# Don't link with OpenCL to make CI easier
+# This implies that we shouldn't unit test device_support.c
 
 test: $(BIN_DIR)/test_main
 	$(BIN_DIR)/test_main
 
 coverage: clean | $(OBJ_DIR)
+ifeq ($(DEBIAN_FRONTEND),noninteractive)
+	$(MAKE) test
+	gcovr -r .. -s -e "../dependencies/*" -e test_main.c
+else
 	lcov --directory $(OBJ_DIR) --zerocounters
 	$(MAKE) test
 	lcov --directory $(OBJ_DIR) --capture --output-file test.info --ignore-errors version,gcov
 	genhtml -o $(COVERAGE_DIR) --exclude "dependencies" test.info
+endif
 
 clean:
 	rm -rf $(BIN_DIR) $(OBJ_DIR)
