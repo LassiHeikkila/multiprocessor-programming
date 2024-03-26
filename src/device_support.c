@@ -5,11 +5,20 @@
 #include "panic.h"
 
 #define MAX_PANIC_MSG_LEN 32
+#define MAX_PANIC_MSG_WITH_FILE_LINE_LEN 256
 
 void check_cl_error(cl_int err) {
     if (err != CL_SUCCESS) {
         char desc[MAX_PANIC_MSG_LEN];
         sprintf(desc, "CL error reported: %i", err);
+        panic(desc);
+    }
+}
+
+void check_cl_error_with_file_line(const char *file, int line, cl_int err) {
+    if (err != CL_SUCCESS) {
+        char desc[MAX_PANIC_MSG_WITH_FILE_LINE_LEN];
+        sprintf(desc, "CL error reported: %i on %s:%d", err, file, line);
         panic(desc);
     }
 }
@@ -159,16 +168,20 @@ cl_command_queue create_queue(
     return queue;
 }
 
-uint64_t get_exec_ns(cl_event *evt) {
+uint64_t get_exec_ns(cl_event evt) {
+    if (evt == NULL) {
+        return 0;
+    }
+
     // printf profiling information
     cl_ulong evt_start = 0;
     cl_ulong evt_end   = 0;
 
     (void)clGetEventProfilingInfo(
-        *evt, CL_PROFILING_COMMAND_QUEUED, sizeof(evt_start), &evt_start, NULL
+        evt, CL_PROFILING_COMMAND_QUEUED, sizeof(evt_start), &evt_start, NULL
     );
     (void)clGetEventProfilingInfo(
-        *evt, CL_PROFILING_COMMAND_END, sizeof(evt_end), &evt_end, NULL
+        evt, CL_PROFILING_COMMAND_END, sizeof(evt_end), &evt_end, NULL
     );
 
     return (uint64_t)(evt_end - evt_start);
@@ -198,4 +211,162 @@ void *read_device_memory(
 
     *err = CL_SUCCESS;
     return buf;
+}
+
+#define GET_DEVICE_INFO(d, info, t)                            \
+    do {                                                       \
+        t param = 0;                                           \
+        clGetDeviceInfo((d), (info), sizeof(t), &param, NULL); \
+        printf(#info ": %zu\n", (uint64_t)param);              \
+    } while (0);
+
+void print_device_info(cl_device_id dev) {
+    printf("Device info dump:\n\n");
+    {
+        cl_device_type t;
+        clGetDeviceInfo(dev, CL_DEVICE_TYPE, sizeof(cl_device_type), &t, NULL);
+        switch (t) {
+            case CL_DEVICE_TYPE_CPU:
+                printf("Device is a CPU\n");
+                break;
+            case CL_DEVICE_TYPE_GPU:
+                printf("Device is a GPU\n");
+                break;
+            case CL_DEVICE_TYPE_ACCELERATOR:
+                printf("Device is an ACCELERATOR\n");
+                break;
+            default:
+                printf("Device is of type 0x%lx\n", t);
+                break;
+        }
+    }
+    {
+        char device_vendor_buf[64];
+        char device_name_buf[64];
+        memset(&device_vendor_buf, 0, sizeof(device_vendor_buf));
+        memset(&device_name_buf, 0, sizeof(device_name_buf));
+
+        clGetDeviceInfo(
+            dev,
+            CL_DEVICE_VENDOR,
+            sizeof(device_vendor_buf) - 1,
+            &device_vendor_buf[0],
+            NULL
+        );
+        clGetDeviceInfo(
+            dev,
+            CL_DEVICE_NAME,
+            sizeof(device_name_buf) - 1,
+            &device_name_buf[0],
+            NULL
+        );
+        printf(
+            "Device vendor: %s\nDevice name: %s\n",
+            device_vendor_buf,
+            device_name_buf
+        );
+    }
+    {
+        cl_device_local_mem_type t;
+        clGetDeviceInfo(
+            dev,
+            CL_DEVICE_LOCAL_MEM_TYPE,
+            sizeof(cl_device_local_mem_type),
+            &t,
+            NULL
+        );
+        switch (t) {
+            case CL_LOCAL:
+                printf("Device supports dedicated local memory\n");
+                break;
+            case CL_GLOBAL:
+                printf("Device supports only global device memory\n");
+                break;
+            case CL_NONE:
+                printf("Device does not support any kind of local memory\n");
+                break;
+        }
+    }
+    {
+        cl_ulong s = 0;
+        clGetDeviceInfo(
+            dev, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &s, NULL
+        );
+        printf("Device local memory max size is %zu bytes\n", s);
+    }
+    {
+        cl_uint cu = 0;
+        size_t  w  = 0;
+        clGetDeviceInfo(
+            dev, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &cu, NULL
+        );
+        clGetDeviceInfo(
+            dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &w, NULL
+        );
+        printf(
+            "Device supports up to %u compute units with up to %zu work groups "
+            "each\n",
+            cu,
+            w
+        );
+    }
+    {
+        cl_uint f = 0;
+        clGetDeviceInfo(
+            dev, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_uint), &f, NULL
+        );
+        printf("Device has maximum clock frequency of %u MHz\n", f);
+    }
+    {
+        cl_ulong b = 0;
+        clGetDeviceInfo(
+            dev, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &b, NULL
+        );
+        printf("Device supports constant buffers up to %zu bytes\n", b);
+    }
+    {
+        cl_uint dimensions = 0;
+        // hard coded to up to eight, don't want to dynamically allocate here...
+        // My host machine reports up to three dimensions so 8 should be
+        // plenty.
+        size_t  sizes[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+        clGetDeviceInfo(
+            dev,
+            CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS,
+            sizeof(cl_uint),
+            &dimensions,
+            NULL
+        );
+        clGetDeviceInfo(
+            dev,
+            CL_DEVICE_MAX_WORK_ITEM_SIZES,
+            sizeof(size_t) * dimensions,
+            &sizes[0],
+            NULL
+        );
+        printf("Device supports up to %u work item dimensions\n", dimensions);
+        for (uint32_t d = 0; d < dimensions; ++d) {
+            printf(
+                "Device work item dimension %u supports up to %zu work items\n",
+                d,
+                sizes[d]
+            );
+        }
+    }
+    {
+        cl_bool images_supported = CL_FALSE;
+        clGetDeviceInfo(
+            dev,
+            CL_DEVICE_IMAGE_SUPPORT,
+            sizeof(cl_bool),
+            &images_supported,
+            NULL
+        );
+        if (images_supported) {
+            printf("Device supports images\n");
+        } else {
+            printf("Device does not support images\n");
+        }
+    }
+    printf("\nend of device info dump\n\n");
 }

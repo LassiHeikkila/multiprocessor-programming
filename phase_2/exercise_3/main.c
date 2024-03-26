@@ -225,9 +225,9 @@ int main() {
     }
 
     // print profiling information
-    uint64_t downscaling_ns = get_exec_ns(&downscaling_prof_evt);
-    uint64_t grayscaling_ns = get_exec_ns(&grayscaling_prof_evt);
-    uint64_t filtering_ns   = get_exec_ns(&filtering_prof_evt);
+    uint64_t downscaling_ns = get_exec_ns(downscaling_prof_evt);
+    uint64_t grayscaling_ns = get_exec_ns(grayscaling_prof_evt);
+    uint64_t filtering_ns   = get_exec_ns(filtering_prof_evt);
     PROFILING_RAW_PRINT_US("downscaling", downscaling_ns);
     PROFILING_RAW_PRINT_US("grayscaling", grayscaling_ns);
     PROFILING_RAW_PRINT_US("filtering", filtering_ns);

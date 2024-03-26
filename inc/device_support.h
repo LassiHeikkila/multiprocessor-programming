@@ -12,6 +12,15 @@
 void check_cl_error(cl_int err);
 
 /*!
+ * @brief Checks given error. If it is not CL_SUCCESS, calls panic with a
+ * message containing file and line number information.
+ * @param file : source file name
+ * @param line : line number
+ * @param err : error code
+ */
+void check_cl_error_with_file_line(const char *file, int line, cl_int err);
+
+/*!
  * @brief Compiles OpenCL program from given file
  * @param path : path to source file
  * @param ctx : OpenCL context
@@ -59,10 +68,10 @@ cl_command_queue create_queue(cl_context ctx, cl_device_id device, cl_int *err);
 
 /*!
  * @brief Gets profiling data from CL runtime
- * @param[in] evt : profiling event
+ * @param evt : profiling event
  * @return execution time in nanoseconds
  */
-uint64_t get_exec_ns(cl_event *evt);
+uint64_t get_exec_ns(cl_event evt);
 
 /*!
  * @brief Read device memory into
@@ -75,5 +84,11 @@ uint64_t get_exec_ns(cl_event *evt);
 void *read_device_memory(
     cl_command_queue queue, cl_mem mem, size_t sz, cl_int *err
 );
+
+/*!
+ * @brief Prints information about GPU on host system
+ * @param dev : OpenCL device
+ */
+void print_device_info(cl_device_id dev);
 
 #endif  // _DEVICE_SUPPORT_H_
