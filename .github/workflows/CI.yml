@@ -18,7 +18,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-    - image: mp-build:$(date +%s)
+      image: mp-build:$(date +%s)
 
     steps:
     - uses: actions/checkout@v3
@@ -28,7 +28,7 @@ jobs:
 
   coverage:
     container:
-    - image: mp-build:$(date +%s)
+      image: mp-build:$(date +%s)
 
     steps:
     - uses: actions/checkout@v3
