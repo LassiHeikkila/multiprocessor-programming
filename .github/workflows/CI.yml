@@ -1,4 +1,4 @@
-name: Run unit tests and measure coverage in Docker
+name: CI
 
 on:
   push:
@@ -12,27 +12,32 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag mp-build:$(date +%s)
+    - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+    - name: Build and export
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        tags: mp-build:latest
+        outputs: type=docker,dest=/tmp/mp-build.tar
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: mp-build
+        path: /tmp/mp-build.tar
 
-  test:
+  test-and-coverage:
     runs-on: ubuntu-latest
-    container:
-      image: mp-build:$(date +%s)
-
+    needs: build-image
     steps:
-    - uses: actions/checkout@v3
-
+    - name: Download image artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: mp-build
+        path: /tmp
+    - name: Load image
+      run: docker load --input /tmp/mp-build.tar
     - name: Run unit tests
       run: make test
-
-  coverage:
-    runs-on: ubuntu-latest
-    container:
-      image: mp-build:$(date +%s)
-
-    steps:
-    - uses: actions/checkout@v3
-
     - name: Measure coverage
       run: make coverage
