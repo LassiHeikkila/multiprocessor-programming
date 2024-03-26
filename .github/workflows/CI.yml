@@ -45,7 +45,14 @@ jobs:
     - name: Measure coverage
       run: docker run --rm -v "$(pwd)":/code -w /code mp-build:latest make coverage
     - name: Coverage summary JSON upload
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-summary
         path: ./test/coverage_summary.json
+    - name: Update https://gist.github.com/LassiHeikkila/2cc186f7491127168e70d457b16fe950
+      uses: exuanbo/actions-deploy-gist@v1
+      with:
+        token: ${{ secrets.COVERAGE_GIST_TOKEN }}
+        gist_id: 2cc186f7491127168e70d457b16fe950
+        gist_file_name: coverage_summary.json
+        file_path: ./test/coverage_summary.json
