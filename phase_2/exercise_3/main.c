@@ -80,22 +80,24 @@ int main() {
     check_cl_error(err);
     assert(queue != NULL);
 
-    downscaling_program =
-        compile_program_from_file(DOWNSCALING_KERNEL_SRC_PATH, ctx, &err);
+    downscaling_program = compile_program_from_file(
+        DOWNSCALING_KERNEL_SRC_PATH, ctx, device, &err
+    );
     check_cl_error(err);
     downscaling_kernel =
         build_kernel(DOWNSCALING_KERNEL_NAME, downscaling_program, &err);
     check_cl_error(err);
 
-    grayscaling_program =
-        compile_program_from_file(GRAYSCALING_KERNEL_SRC_PATH, ctx, &err);
+    grayscaling_program = compile_program_from_file(
+        GRAYSCALING_KERNEL_SRC_PATH, ctx, device, &err
+    );
     check_cl_error(err);
     grayscaling_kernel =
         build_kernel(GRAYSCALING_KERNEL_NAME, grayscaling_program, &err);
     check_cl_error(err);
 
     filtering_program =
-        compile_program_from_file(FILTERING_KERNEL_SRC_PATH, ctx, &err);
+        compile_program_from_file(FILTERING_KERNEL_SRC_PATH, ctx, device, &err);
     check_cl_error(err);
     filtering_kernel =
         build_kernel(FILTERING_KERNEL_NAME, filtering_program, &err);
