@@ -232,7 +232,7 @@ cl_program compile_program_from_file(
         return program;
     }
 
-    cl_int build_res = clBuildProgram(program, 1, NULL, NULL, NULL, NULL);
+    cl_int build_res = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (build_res != CL_SUCCESS && err != NULL) {
         *err = build_res;
     }
