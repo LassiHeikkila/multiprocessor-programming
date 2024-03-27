@@ -24,12 +24,19 @@ void check_cl_error_with_file_line(const char *file, int line, cl_int err);
  * @brief Compiles OpenCL program from given file
  * @param path : path to source file
  * @param ctx : OpenCL context
+ * @param dev : OpenCL device
  * @param[out] err : CL_SUCCESS for success, error code otherwise
  * @return program structure or NULL
  */
 cl_program compile_program_from_file(
-    const char *path, cl_context ctx, cl_int *err
+    const char *path, cl_context ctx, cl_device_id dev, cl_int *err
 );
+
+/*!
+ * @brief Prints build log
+ * @param program : program which built
+ */
+void print_build_log(cl_program program, cl_device_id dev);
 
 /*!
  * @brief Creates kernel from the given program

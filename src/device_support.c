@@ -24,7 +24,7 @@ void check_cl_error_with_file_line(const char *file, int line, cl_int err) {
 }
 
 cl_program compile_program_from_file(
-    const char *path, cl_context ctx, cl_int *err
+    const char *path, cl_context ctx, cl_device_id dev, cl_int *err
 ) {
     cl_program program = NULL;
     FILE      *f       = NULL;
@@ -66,14 +66,39 @@ cl_program compile_program_from_file(
         return NULL;
     }
 
-    internal_err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+    internal_err = clBuildProgram(program, 1, &dev, "-Werror", NULL, NULL);
     if (internal_err != CL_SUCCESS) {
+        print_build_log(program, dev);
         *err = internal_err;
         return NULL;
     }
 
     *err = CL_SUCCESS;
     return program;
+}
+
+// 16 kB buffer should be plenty, right?
+#define BUILD_LOG_SIZE (16 * 1024)
+
+void print_build_log(cl_program program, cl_device_id dev) {
+    static char build_log[BUILD_LOG_SIZE];
+    memset(build_log, 0, BUILD_LOG_SIZE);
+
+    size_t build_log_len = 0;
+    (void)clGetProgramBuildInfo(
+        program,
+        dev,
+        CL_PROGRAM_BUILD_LOG,
+        BUILD_LOG_SIZE - 1,
+        build_log,
+        &build_log_len
+    );
+
+    printf("OpenCL program build log: \n%s\n", (const char *)build_log);
+
+    if (build_log_len == BUILD_LOG_SIZE - 1) {
+        printf("WARNING: build log may have been truncated...");
+    }
 }
 
 cl_kernel build_kernel(
@@ -293,6 +318,13 @@ void print_device_info(cl_device_id dev) {
             dev, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &s, NULL
         );
         printf("Device local memory max size is %zu bytes\n", s);
+    }
+    {
+        cl_ulong s = 0;
+        clGetDeviceInfo(
+            dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &s, NULL
+        );
+        printf("Device global memory max size is %zu bytes\n", s);
     }
     {
         cl_uint cu = 0;
