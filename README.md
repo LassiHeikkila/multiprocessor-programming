@@ -15,7 +15,9 @@ The host code is written in C.
 
 Algorithm kernels are written using OpenCL for phases 5 and 6.
 
-> Note: reported coverage is for files from `src/` except for `device_support.c`
+> Note: CI only tests C code in `src/`
+> It does not build the executables from `phase_<n>`, since those require OpenCL (most of them anyway), and that requires special host support.
+> Reported coverage is for files from `src/` except for `device_support.c`
 
 # Phases
 
