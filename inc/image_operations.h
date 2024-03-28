@@ -24,8 +24,26 @@ void scale_down_image(rgba_img_t* in, rgba_img_t* out);
 
 void convert_to_grayscale(rgba_img_t* in, gray_img_t* out);
 
-void convert_to_float(gray_img_t* in, float_img_t* out);
+void convert_to_double(gray_img_t* in, double_img_t* out);
 
 void apply_filter(gray_img_t* in, gray_img_t* out);
+
+void output_grayscale_int32_image(
+    const char*         path,
+    int32_t*            data,
+    uint32_t            W,
+    uint32_t            H,
+    int32_t             max,
+    img_write_result_t* res
+);
+
+void output_grayscale_double_image(
+    const char*         path,
+    double*             data,
+    uint32_t            W,
+    uint32_t            H,
+    double              max,
+    img_write_result_t* res
+);
 
 #endif  // _IMAGE_OPERATIONS_H_

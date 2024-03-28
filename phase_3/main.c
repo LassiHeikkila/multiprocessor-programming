@@ -28,14 +28,6 @@
 
 #define PROGRESS_PRINTS 0
 
-void output_grayscale_float_image(
-    const char *path, double *img, uint32_t W, uint32_t H, double max
-);
-
-void output_grayscale_int32_image(
-    const char *path, int32_t *img, uint32_t W, uint32_t H, int32_t max
-);
-
 int main() {
     // load images from disk
     img_load_result_t img_left;
@@ -100,11 +92,11 @@ int main() {
     free(img_left_ds.img);
     free(img_right_ds.img);
 
-    float_img_t img_left_f  = {.img = NULL};
-    float_img_t img_right_f = {.img = NULL};
+    double_img_t img_left_f  = {.img = NULL};
+    double_img_t img_right_f = {.img = NULL};
 
-    convert_to_float(&img_left_gs, &img_left_f);
-    convert_to_float(&img_right_gs, &img_right_f);
+    convert_to_double(&img_left_gs, &img_left_f);
+    convert_to_double(&img_right_gs, &img_right_f);
 
     // don't need GS images anymore
     free(img_left_gs.img);
@@ -201,17 +193,37 @@ int main() {
 #endif
     PROFILING_BLOCK_END(preprocessing);
 
-    output_grayscale_float_image(
-        "./output_images/mean_left.png", mean_left, W, H, (double)MAX_GS_VALUE
+    output_grayscale_double_image(
+        "./output_images/mean_left.png",
+        mean_left,
+        W,
+        H,
+        (double)MAX_GS_VALUE,
+        NULL
     );
-    output_grayscale_float_image(
-        "./output_images/mean_right.png", mean_right, W, H, (double)MAX_GS_VALUE
+    output_grayscale_double_image(
+        "./output_images/mean_right.png",
+        mean_right,
+        W,
+        H,
+        (double)MAX_GS_VALUE,
+        NULL
     );
-    output_grayscale_float_image(
-        "./output_images/std_left.png", std_left, W, H, (double)MAX_GS_VALUE
+    output_grayscale_double_image(
+        "./output_images/std_left.png",
+        std_left,
+        W,
+        H,
+        (double)MAX_GS_VALUE,
+        NULL
     );
-    output_grayscale_float_image(
-        "./output_images/std_right.png", std_right, W, H, (double)MAX_GS_VALUE
+    output_grayscale_double_image(
+        "./output_images/std_right.png",
+        std_right,
+        W,
+        H,
+        (double)MAX_GS_VALUE,
+        NULL
     );
 
     // don't need float input images anymore
@@ -319,10 +331,20 @@ int main() {
     printf("outputting raw depthmaps\n");
 
     output_grayscale_int32_image(
-        IMAGE_PATH_RAW_OUT_LEFT_TO_RIGHT, disparity_image_left, W, H, MAX_DISP
+        IMAGE_PATH_RAW_OUT_LEFT_TO_RIGHT,
+        disparity_image_left,
+        W,
+        H,
+        MAX_DISP,
+        NULL
     );
     output_grayscale_int32_image(
-        IMAGE_PATH_RAW_OUT_RIGHT_TO_LEFT, disparity_image_right, W, H, MAX_DISP
+        IMAGE_PATH_RAW_OUT_RIGHT_TO_LEFT,
+        disparity_image_right,
+        W,
+        H,
+        MAX_DISP,
+        NULL
     );
 
     int32_t *combined = malloc(sizeof(int32_t) * W * H);
@@ -391,7 +413,7 @@ int main() {
     printf("output crosschecked depthmap\n");
 
     output_grayscale_int32_image(
-        IMAGE_PATH_CROSSCHECKED_OUT, combined, W, H, MAX_DISP
+        IMAGE_PATH_CROSSCHECKED_OUT, combined, W, H, MAX_DISP, NULL
     );
 
     free(preprocessed_windows_left);
@@ -405,55 +427,4 @@ int main() {
     PROFILING_BLOCK_PRINT_MS(postprocessing);
 
     return 0;
-}
-
-void output_grayscale_float_image(
-    const char *path, double *img, uint32_t W, uint32_t H, double max
-) {
-    assert(path != NULL);
-    assert(img != NULL);
-
-    gray_t *out = malloc(sizeof(gray_t) * W * H);
-    assert(out != NULL);
-
-    for (uint32_t y = 0; y < H; ++y) {
-        for (uint32_t x = 0; x < W; ++x) {
-            out[(y * W) + x] =
-                (gray_t)(img[(y * W) + x] * (double)MAX_GS_VALUE / max);
-        }
-    }
-
-    gray_img_t         desc = {.img = out, .width = W, .height = H};
-    img_write_result_t res  = {.err = 0};
-    output_image(path, &desc, GS, &res);
-    free(out);
-
-    if (res.err != 0) {
-        panic("failed to output image!");
-    }
-}
-
-void output_grayscale_int32_image(
-    const char *path, int32_t *img, uint32_t W, uint32_t H, int32_t max
-) {
-    assert(path != NULL);
-    assert(img != NULL);
-
-    gray_t *out = malloc(sizeof(gray_t) * W * H);
-    assert(out != NULL);
-
-    for (uint32_t y = 0; y < H; ++y) {
-        for (uint32_t x = 0; x < W; ++x) {
-            out[(y * W) + x] = (gray_t)(img[(y * W) + x] * MAX_GS_VALUE / max);
-        }
-    }
-
-    gray_img_t         desc = {.img = out, .width = W, .height = H};
-    img_write_result_t res  = {.err = 0};
-    output_image(path, &desc, GS, &res);
-    free(out);
-
-    if (res.err != 0) {
-        panic("failed to output image!");
-    }
 }

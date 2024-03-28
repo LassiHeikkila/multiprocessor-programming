@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -189,9 +190,9 @@ void apply_filter(gray_img_t* in, gray_img_t* out) {
     // clang-format on
 }
 
-void convert_to_float(gray_img_t* in, float_img_t* out) {
+void convert_to_double(gray_img_t* in, double_img_t* out) {
     if (in == NULL || out == NULL || in->height == 0 || in->width == 0) {
-        panic("bad arguments to \"convert_to_float\"");
+        panic("bad arguments to \"convert_to_double\"");
     }
 
     const uint32_t h = in->height;
@@ -209,4 +210,56 @@ void convert_to_float(gray_img_t* in, float_img_t* out) {
             out->img[(y * w) + x] = (double)(in->img[(y * w) + x]);
         }
     }
+}
+
+void output_grayscale_int32_image(
+    const char*         path,
+    int32_t*            data,
+    uint32_t            W,
+    uint32_t            H,
+    int32_t             max,
+    img_write_result_t* res
+) {
+    assert(path != NULL);
+    assert(data != NULL);
+
+    gray_t* out = malloc(sizeof(gray_t) * W * H);
+    assert(out != NULL);
+
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            out[(y * W) + x] = (gray_t)(data[(y * W) + x] * 255U / max);
+        }
+    }
+
+    gray_img_t desc = {.img = out, .width = W, .height = H};
+
+    output_image(path, &desc, GS, res);
+    free(out);
+}
+
+void output_grayscale_double_image(
+    const char*         path,
+    double*             data,
+    uint32_t            W,
+    uint32_t            H,
+    double              max,
+    img_write_result_t* res
+) {
+    assert(path != NULL);
+    assert(data != NULL);
+
+    gray_t* out = malloc(sizeof(gray_t) * W * H);
+    assert(out != NULL);
+
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            out[(y * W) + x] = (gray_t)(data[(y * W) + x] * 255.0 / max);
+        }
+    }
+
+    gray_img_t desc = {.img = out, .width = W, .height = H};
+
+    output_image(path, &desc, GS, res);
+    free(out);
 }
