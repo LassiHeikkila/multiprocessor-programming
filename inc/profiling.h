@@ -46,6 +46,12 @@
         PROFLING_BLOCK_CALCULATE_NS(id)         \
     )
 
+#define PROFILING_RAW_PRINT_S(desc, ns) \
+    printf("\"%s\" took %0.3f s\n", desc, ((double)ns / 1000000000.0));
+
+#define PROFILING_RAW_PRINT_MS(desc, ns) \
+    printf("\"%s\" took %0.3f ms\n", desc, ((double)ns / 1000000.0));
+
 #define PROFILING_RAW_PRINT_US(desc, ns) \
     printf("\"%s\" took %ld µs\n", desc, (ns / 1000));
 
