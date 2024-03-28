@@ -6,6 +6,7 @@
 #include "munit.h"
 
 #include "coord_fifo.h"
+#include "image_operations.h"
 #include "zncc_operations.h"
 
 MunitResult test_calculate_window_mean(
@@ -514,6 +515,53 @@ MunitResult test_coord_fifo(const MunitParameter params[], void* data) {
     return MUNIT_OK;
 }
 
+#define TEST_IMAGE_PATH_0 "./test_images/input/im0.png"
+#define TEST_IMAGE_PATH_1 "./test_images/input/im1.png"
+
+MunitResult test_image_loading(const MunitParameter params[], void* data) {
+    (void)params;
+    (void)data;
+
+    {
+        // load im0.png
+        img_load_result_t expect_0 = {
+            .err = 0, .img_desc.height = 2016, .img_desc.width = 2940
+        };
+
+        img_load_result_t got_0;
+        load_image(TEST_IMAGE_PATH_0, &got_0);
+
+        munit_assert_uint32(expect_0.img_desc.width, ==, got_0.img_desc.width);
+        munit_assert_uint32(
+            expect_0.img_desc.height, ==, got_0.img_desc.height
+        );
+        munit_assert_uint(0, ==, got_0.err);
+        munit_assert_not_null(got_0.img_desc.img);
+
+        free(got_0.img_desc.img);
+    }
+    {
+        // load im1.png
+        img_load_result_t expect_1 = {
+            .err = 0, .img_desc.height = 2016, .img_desc.width = 2940
+        };
+
+        img_load_result_t got_1;
+        load_image(TEST_IMAGE_PATH_1, &got_1);
+
+        munit_assert_uint32(expect_1.img_desc.width, ==, got_1.img_desc.width);
+        munit_assert_uint32(
+            expect_1.img_desc.height, ==, got_1.img_desc.height
+        );
+        munit_assert_uint(0, ==, got_1.err);
+        munit_assert_not_null(got_1.img_desc.img);
+
+        free(got_1.img_desc.img);
+    }
+
+    return MUNIT_OK;
+}
+
 int main(int argc, char* argv[MUNIT_ARRAY_PARAM(argc + 1)]) {
     // clang-format off
     static MunitTest tests[] = {
@@ -584,6 +632,14 @@ int main(int argc, char* argv[MUNIT_ARRAY_PARAM(argc + 1)]) {
         {
             "find_nearest_nonzero_neighbour_prealloc",
             test_find_nearest_nonzero_neighbour_prealloc,
+            NULL,
+            NULL,
+            MUNIT_TEST_OPTION_NONE,
+            NULL
+        },
+        {
+            "test_image_loading",
+            test_image_loading,
             NULL,
             NULL,
             MUNIT_TEST_OPTION_NONE,
