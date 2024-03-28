@@ -30,10 +30,18 @@ typedef struct {
 } gray_img_t;
 
 typedef struct {
-    double*  img;
+    int32_t* img;
+    int32_t  max;
     uint32_t width;
     uint32_t height;
-} float_img_t;
+} int32_img_t;
+
+typedef struct {
+    double*  img;
+    double   max;
+    uint32_t width;
+    uint32_t height;
+} double_img_t;
 
 typedef struct {
     rgba_img_t   img_desc;
