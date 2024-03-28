@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -562,6 +563,120 @@ MunitResult test_image_loading(const MunitParameter params[], void* data) {
     return MUNIT_OK;
 }
 
+bool images_equal(const char* a, const char* b) {
+    FILE* af = fopen(a, "rb");
+    FILE* bf = fopen(b, "rb");
+
+    munit_assert_not_null(af);
+    munit_assert_not_null(bf);
+
+    char ac = 0;
+    char bc = 0;
+
+    while (true) {
+        ac = getc(af);
+        bc = getc(bf);
+
+        if (ac != bc) {
+            fclose(af);
+            fclose(bf);
+            return false;
+        }
+
+        if (ac == EOF) {
+            // also bc == EOF
+            break;
+        }
+    }
+
+    fclose(af);
+    fclose(bf);
+    return true;
+}
+
+MunitResult test_output_image(const MunitParameter params[], void* data) {
+    (void)params;
+    (void)data;
+
+    const uint32_t W = 100;
+    const uint32_t H = 100;
+
+    {
+        // output GS image
+        const char* reference_image = "./test_images/output/reference_gs_0.png";
+        const char* generated_image =
+            "./test_images/output/test_generated_gs_0.png";
+
+        gray_img_t test_image = {
+            .img    = malloc(W * H * sizeof(gray_t)),
+            .width  = W,
+            .height = H,
+        };
+        munit_assert_not_null(test_image.img);
+
+        // generate 100x100 image containing some pattern
+        for (uint32_t y = 0; y < H; ++y) {
+            for (uint32_t x = 0; x < W; ++x) {
+                test_image.img[y * W + x] = (gray_t)(x ^ y);
+            }
+        }
+
+        img_write_result_t write_result;
+
+        output_image(generated_image, &test_image, GS, &write_result);
+
+        munit_assert(write_result.err == 0);
+
+        // check reference image and generated image are equal
+        munit_assert_true(images_equal(reference_image, generated_image));
+    }
+    {
+        // output RGBA image
+        const char* reference_image =
+            "./test_images/output/reference_rgba_0.png";
+        const char* generated_image =
+            "./test_images/output/test_generated_rgba_0.png";
+
+        rgba_img_t test_image = {
+            .img    = malloc(W * H * sizeof(rgba_t)),
+            .width  = W,
+            .height = H,
+        };
+        munit_assert_not_null(test_image.img);
+
+        // generate 100x100 image containing some pattern
+        for (uint32_t y = 0; y < H; ++y) {
+            for (uint32_t x = 0; x < W; ++x) {
+                test_image.img[y * W + x].R = 255 * !(x & y);
+                test_image.img[y * W + x].G = x ^ y;
+                test_image.img[y * W + x].B = x | y;
+                test_image.img[y * W + x].A = 255;
+            }
+        }
+
+        img_write_result_t write_result;
+
+        output_image(generated_image, &test_image, RGBA, &write_result);
+
+        munit_assert(write_result.err == 0);
+
+        // check reference image and generated image are equal
+        munit_assert_true(images_equal(reference_image, generated_image));
+    }
+    {
+        // output GS float image
+        // TODO: move `output_grayscale_float_image` func from phase_4/main.c
+        // into src/image_operations.c to enable testing it
+    }
+    {
+        // output GS int32 image
+        // TODO: move `output_grayscale_int32_image` func from phase_4/main.c
+        // into src/image_operations.c to enable testing it
+    }
+
+    return MUNIT_OK;
+}
+
 int main(int argc, char* argv[MUNIT_ARRAY_PARAM(argc + 1)]) {
     // clang-format off
     static MunitTest tests[] = {
@@ -640,6 +755,14 @@ int main(int argc, char* argv[MUNIT_ARRAY_PARAM(argc + 1)]) {
         {
             "test_image_loading",
             test_image_loading,
+            NULL,
+            NULL,
+            MUNIT_TEST_OPTION_NONE,
+            NULL
+        },
+        {
+            "test_output_image",
+            test_output_image,
             NULL,
             NULL,
             MUNIT_TEST_OPTION_NONE,
