@@ -90,7 +90,7 @@ double calculate_window_standard_deviation(
         }
     }
 
-    std_dev = sqrt((double)variance_sum / (double)(W * H));
+    std_dev = sqrt(variance_sum / (double)(W * H));
 
     return std_dev;
 }
