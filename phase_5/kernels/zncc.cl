@@ -7,7 +7,7 @@
 #endif
 
 #ifndef CROSSCHECK_THRESHOLD
-#define CROSSCHECK_THRESHOLD 24
+#define CROSSCHECK_THRESHOLD 8
 #endif
 
 #define WINDOW_SIZE (WINDOW_HEIGHT * WINDOW_WIDTH)
@@ -20,7 +20,7 @@ void extract_window(
 ) {
     // assumes that out has capacity for (window_dimensions.x * window_dimensions.y) floats
 
-    int2 coord = (0, 0);
+    int2 coord = (int2)(0, 0);
     unsigned int out_idx = 0;
 
     int x = 0;
@@ -166,6 +166,8 @@ __kernel void calculate_zncc(
     unsigned int y = 0;
     unsigned int x = 0;
 
+    int2 image_dimensions = (int2)(H, W);
+
     __private float window_left[WINDOW_SIZE];
     __private float window_right[WINDOW_SIZE];
     
@@ -176,10 +178,13 @@ __kernel void calculate_zncc(
                 float max_sum = 0.0f;
                 int best_disparity = 0;
 
-                extract_normalized_window((x, y), (H, W), img_right, window_right);
+                int2 coord_r = (int2)(x, y);
+                extract_normalized_window(coord_r, image_dimensions, img_right, window_right);
 
                 for (int d = 0; d < min(W - x - 1, max_disparity); ++d) {
-                    extract_normalized_window((x + d, y), (H, W), img_left, window_left);
+                    int2 coord_l = (int2)(x + d, y);
+
+                    extract_normalized_window(coord_l, image_dimensions, img_left, window_left);
 
                     float zncc = window_dot_product(window_left, window_right);
 
@@ -200,10 +205,13 @@ __kernel void calculate_zncc(
                 float max_sum = 0.0f;
                 int best_disparity = 0;
 
-                extract_normalized_window((x, y), (H, W), img_left, window_left);
+                int2 coord_l = (int2)(x, y);
+
+                extract_normalized_window(coord_l, image_dimensions, img_left, window_left);
 
                 for (int d = 0; d < min(x, max_disparity); ++d) {
-                    extract_normalized_window((x - d, y), (H, W), img_right, window_right);
+                    int2 coord_r = (int2)(x - d, y);
+                    extract_normalized_window(coord_r, image_dimensions, img_right, window_right);
 
                     float zncc = window_dot_product(window_left, window_right);
 

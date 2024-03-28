@@ -477,7 +477,7 @@ int main() {
         .width  = W_ds,
         .height = H_ds
     };
-    memset(depthmap.img, MAX_DISP, W_ds * H_ds * sizeof(int32_t));
+    memset(depthmap.img, 1, W_ds * H_ds * sizeof(int32_t));
 
     err = clEnqueueReadBuffer(
         queue,
@@ -492,14 +492,21 @@ int main() {
     );
     err_check(err);
 
+    err = clFinish(queue);
+    err_check(err);
+
+    img_write_result_t r = {.err = 0};
     output_grayscale_int32_image(
         IMAGE_PATH_OUT,
         depthmap.img,
         depthmap.width,
         depthmap.height,
         depthmap.max,
-        NULL
+        &r
     );
+    if (r.err != 0) {
+        printf("error outputting depthmap: %d\n", r.err);
+    }
 
     // free remaining resources
     clReleaseMemObject(dev_disp_left);
