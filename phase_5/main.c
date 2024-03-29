@@ -26,7 +26,6 @@
 #define ZNCC_EXTRACT_DATA_WINDOWS_NAME "extract_data_windows"
 #define ZNCC_CALCULATE_NAME "calculate_zncc"
 #define ZNCC_CROSS_CHECK_NAME "cross_check"
-#define ZNCC_FILL_ZEROS_NAME "fill_zero_regions"
 
 #define DOWNSCALING_FACTOR_W 4
 #define DOWNSCALING_FACTOR_H 4
@@ -120,7 +119,6 @@ int main() {
     cl_program       zncc_p        = NULL;
     cl_kernel        zncc_k        = NULL;
     cl_kernel        cross_check_k = NULL;
-    cl_kernel        zero_fill_k   = NULL;
 
     printf("set up OpenCL runtime...\n");
 
@@ -156,9 +154,6 @@ int main() {
     err_check(err);
 
     cross_check_k = build_kernel(ZNCC_CROSS_CHECK_NAME, zncc_p, &err);
-    err_check(err);
-
-    zero_fill_k = build_kernel(ZNCC_FILL_ZEROS_NAME, zncc_p, &err);
     err_check(err);
 
     print_device_info(dev);
@@ -426,7 +421,6 @@ int main() {
     printf("postprocessing disparity data...\n");
 
     cl_event prof_evt_cross_check = NULL;
-    cl_event prof_evt_zero_fill   = NULL;
     cl_mem   dev_combined_image   = NULL;
 
     dev_combined_image = clCreateBuffer(
@@ -508,7 +502,6 @@ int main() {
     }
 
     PROFILING_BLOCK_END(postprocessing);
-    PROFILING_BLOCK_END(total_runtime);
 
     img_write_result_t r = {.err = 0};
     output_image(IMAGE_PATH_OUT, &depthmap, GS_INT32, &r);
@@ -522,6 +515,8 @@ int main() {
     clReleaseMemObject(dev_combined_image);
     free(depthmap.img);
 
+    PROFILING_BLOCK_END(total_runtime);
+
     // print profiling information
 
     uint64_t ds_ns =
@@ -530,8 +525,7 @@ int main() {
         get_exec_ns(prof_evt_gs_left) + get_exec_ns(prof_evt_gs_right);
     uint64_t zncc_ns =
         get_exec_ns(prof_evt_zncc_l) + get_exec_ns(prof_evt_zncc_r);
-    uint64_t postprocess_ns =
-        get_exec_ns(prof_evt_cross_check) + get_exec_ns(prof_evt_zero_fill);
+    uint64_t postprocess_ns = get_exec_ns(prof_evt_cross_check);
 
     printf("\nOpenCL profiling blocks:\n");
     PROFILING_RAW_PRINT_US("downscaling", ds_ns);
