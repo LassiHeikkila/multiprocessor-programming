@@ -4,8 +4,11 @@
 #include <stdint.h>
 
 typedef enum {
-    RGBA,  // == red green blue alpha
-    GS     // == grayscale
+    RGBA,      // == red green blue alpha
+    GS,        // == grayscale
+    GS_INT32,  // == grayscale with int32_t values
+    GS_FLOAT,  // == grayscale with float values
+    GS_DOUBLE  // == grayscale with double values
 } palette_e;
 
 typedef struct {
@@ -35,6 +38,13 @@ typedef struct {
     uint32_t width;
     uint32_t height;
 } int32_img_t;
+
+typedef struct {
+    float*   img;
+    float    max;
+    uint32_t width;
+    uint32_t height;
+} float_img_t;
 
 typedef struct {
     double*  img;

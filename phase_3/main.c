@@ -193,38 +193,50 @@ int main() {
 #endif
     PROFILING_BLOCK_END(preprocessing);
 
-    output_grayscale_double_image(
-        "./output_images/mean_left.png",
-        mean_left,
-        W,
-        H,
-        (double)MAX_GS_VALUE,
-        NULL
-    );
-    output_grayscale_double_image(
-        "./output_images/mean_right.png",
-        mean_right,
-        W,
-        H,
-        (double)MAX_GS_VALUE,
-        NULL
-    );
-    output_grayscale_double_image(
-        "./output_images/std_left.png",
-        std_left,
-        W,
-        H,
-        (double)MAX_GS_VALUE,
-        NULL
-    );
-    output_grayscale_double_image(
-        "./output_images/std_right.png",
-        std_right,
-        W,
-        H,
-        (double)MAX_GS_VALUE,
-        NULL
-    );
+    {
+        double_img_t tmp_mean_l = {
+            .img    = mean_left,
+            .max    = (double)MAX_GS_VALUE,
+            .width  = W,
+            .height = H
+        };
+        output_image(
+            "./output_images/mean_left.png", &tmp_mean_l, GS_DOUBLE, NULL
+        );
+    }
+    {
+        double_img_t tmp_mean_r = {
+            .img    = mean_right,
+            .max    = (double)MAX_GS_VALUE,
+            .width  = W,
+            .height = H
+        };
+        output_image(
+            "./output_images/mean_right.png", &tmp_mean_r, GS_DOUBLE, NULL
+        );
+    }
+    {
+        double_img_t tmp_stddev_l = {
+            .img    = std_left,
+            .max    = (double)MAX_GS_VALUE,
+            .width  = W,
+            .height = H
+        };
+        output_image(
+            "./output_images/std_left.png", &tmp_stddev_l, GS_DOUBLE, NULL
+        );
+    }
+    {
+        double_img_t tmp_stddev_r = {
+            .img    = std_right,
+            .max    = (double)MAX_GS_VALUE,
+            .width  = W,
+            .height = H
+        };
+        output_image(
+            "./output_images/std_right.png", &tmp_stddev_r, GS_DOUBLE, NULL
+        );
+    }
 
     // don't need float input images anymore
     free(img_left_f.img);
@@ -330,22 +342,28 @@ int main() {
 
     printf("outputting raw depthmaps\n");
 
-    output_grayscale_int32_image(
-        IMAGE_PATH_RAW_OUT_LEFT_TO_RIGHT,
-        disparity_image_left,
-        W,
-        H,
-        MAX_DISP,
-        NULL
-    );
-    output_grayscale_int32_image(
-        IMAGE_PATH_RAW_OUT_RIGHT_TO_LEFT,
-        disparity_image_right,
-        W,
-        H,
-        MAX_DISP,
-        NULL
-    );
+    {
+        int32_img_t disp_img_left = {
+            .img    = disparity_image_left,
+            .max    = MAX_DISP,
+            .width  = W,
+            .height = H
+        };
+        output_image(
+            IMAGE_PATH_RAW_OUT_LEFT_TO_RIGHT, &disp_img_left, GS_INT32, NULL
+        );
+    }
+    {
+        int32_img_t disp_img_right = {
+            .img    = disparity_image_right,
+            .max    = MAX_DISP,
+            .width  = W,
+            .height = H
+        };
+        output_image(
+            IMAGE_PATH_RAW_OUT_RIGHT_TO_LEFT, &disp_img_right, GS_INT32, NULL
+        );
+    }
 
     int32_t *combined = malloc(sizeof(int32_t) * W * H);
     assert(combined != NULL);
@@ -412,9 +430,10 @@ int main() {
 
     printf("output crosschecked depthmap\n");
 
-    output_grayscale_int32_image(
-        IMAGE_PATH_CROSSCHECKED_OUT, combined, W, H, MAX_DISP, NULL
-    );
+    int32_img_t combined_img = {
+        .img = combined, .max = MAX_DISP, .width = W, .height = H
+    };
+    output_image(IMAGE_PATH_CROSSCHECKED_OUT, &combined_img, GS_INT32, NULL);
 
     free(preprocessed_windows_left);
     free(preprocessed_windows_right);
