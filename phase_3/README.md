@@ -69,33 +69,24 @@ Real peak memory use is reported as just under 500 MB.
 
 Output:
 ```console
-$ /usr/bin/time -f "\n\nexecution time %e\npeak memory use %M kB" bin/main  
+$ /usr/bin/time -f "\n\nexecution time %e s\npeak memory use %M kB" bin/main
 loading images...
 pre-processing images...
 pre-processing data windows...
-progress: 100.00%
-
 computing depthmap left to right:
-progress: 100.00%
-
 computing depthmap right to left:
-progress: 100.00%
-
 outputting raw depthmaps
 cross-checking...
-progress: 100.00%
-
 filling empty regions...
-progress: 100.00%
-
 output crosschecked depthmap
-profiling block "preprocessing" took 430.630 ms
-profiling block "zncc_calculation" took 2.925 s
-profiling block "postprocessing" took 282.309 ms
+profiling block "preprocessing" took 425.571 ms
+profiling block "zncc_calculation" took 2.826 s
+profiling block "postprocessing" took 263.251 ms
+profiling block "total_runtime" took 4.118 s
 
 
-execution time 4.26
-peak memory use 497112 kB
+execution time 4.12 s
+peak memory use 496708 kB
 ```
 
 ## Output depthmap

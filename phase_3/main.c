@@ -33,9 +33,12 @@ int main() {
     img_load_result_t img_left;
     img_load_result_t img_right;
 
+    PROFILING_BLOCK_DECLARE(total_runtime);
     PROFILING_BLOCK_DECLARE(preprocessing);
     PROFILING_BLOCK_DECLARE(zncc_calculation);
     PROFILING_BLOCK_DECLARE(postprocessing);
+
+    PROFILING_BLOCK_BEGIN(total_runtime);
 
     printf("loading images...\n");
 
@@ -441,9 +444,12 @@ int main() {
     free(disparity_image_right);
     free(combined);
 
+    PROFILING_BLOCK_END(total_runtime);
+
     PROFILING_BLOCK_PRINT_MS(preprocessing);
     PROFILING_BLOCK_PRINT_S(zncc_calculation);
     PROFILING_BLOCK_PRINT_MS(postprocessing);
+    PROFILING_BLOCK_PRINT_S(total_runtime);
 
     return 0;
 }
