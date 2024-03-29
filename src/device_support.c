@@ -212,6 +212,70 @@ uint64_t get_exec_ns(cl_event evt) {
     return (uint64_t)(evt_end - evt_start);
 }
 
+cl_mem allocate_2D_image(
+    cl_context             ctx,
+    cl_command_queue       queue,
+    const cl_image_format *format,
+    size_t                 W,
+    size_t                 H,
+    size_t                 elem_sz,
+    void                  *data,
+    cl_int                *err
+) {
+    cl_int internal_err;
+    if (err == NULL) {
+        err = &internal_err;
+    }
+
+    cl_mem              img         = NULL;
+    const cl_image_desc description = {
+        .image_type        = CL_MEM_OBJECT_IMAGE2D,
+        .image_width       = W,
+        .image_height      = H,
+        .image_depth       = 1,
+        .image_array_size  = 1,
+        .image_row_pitch   = 0,
+        .image_slice_pitch = 0,
+        .num_mip_levels    = 0,
+        .num_samples       = 0,
+        .buffer            = NULL
+    };
+
+    cl_mem_flags mf = CL_MEM_READ_WRITE;
+    if (data) {
+        mf |= CL_MEM_USE_HOST_PTR | CL_MEM_HOST_WRITE_ONLY;
+    } else {
+        mf |= CL_MEM_HOST_READ_ONLY;
+    }
+
+    img = clCreateImage(ctx, mf, format, &description, data, &internal_err);
+
+    if (internal_err != CL_SUCCESS) {
+        *err = internal_err;
+        clReleaseMemObject(img);
+        return NULL;
+    }
+
+    if (data) {
+        // copy data to device side
+        size_t origin[3] = {0, 0, 0};
+        size_t region[3] = {W, H, 1};
+        internal_err     = clEnqueueWriteImage(
+            queue, img, CL_TRUE, origin, region, 0, 0, data, 0, NULL, NULL
+        );
+
+        if (internal_err != CL_SUCCESS) {
+            *err = internal_err;
+            clReleaseMemObject(img);
+            return NULL;
+        }
+    }
+
+    *err = CL_SUCCESS;
+
+    return img;
+}
+
 void *read_device_memory(
     cl_command_queue queue, cl_mem mem, size_t sz, cl_int *err
 ) {
@@ -227,6 +291,41 @@ void *read_device_memory(
 
     internal_err =
         clEnqueueReadBuffer(queue, mem, CL_TRUE, 0, sz, buf, 0, NULL, NULL);
+
+    if (internal_err != CL_SUCCESS) {
+        *err = internal_err;
+        free(buf);
+        return NULL;
+    }
+
+    *err = CL_SUCCESS;
+    return buf;
+}
+
+void *read_device_image(
+    cl_command_queue queue,
+    cl_mem           image,
+    size_t           W,
+    size_t           H,
+    size_t           elem_sz,
+    cl_int          *err
+) {
+    cl_int internal_err;
+    if (err == NULL) {
+        err = &internal_err;
+    }
+
+    const size_t origin[3] = {0, 0, 0};
+    const size_t region[3] = {W, H, 1};
+
+    void *buf = malloc(W * H * elem_sz);
+    if (buf == NULL) {
+        panic("failed to allocate buffer for image data!");
+    }
+
+    internal_err = clEnqueueReadImage(
+        queue, image, CL_TRUE, origin, region, 0, 0, buf, 0, NULL, NULL
+    );
 
     if (internal_err != CL_SUCCESS) {
         *err = internal_err;
