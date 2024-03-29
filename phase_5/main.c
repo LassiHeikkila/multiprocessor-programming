@@ -4,10 +4,13 @@
 
 #include <CL/cl.h>
 
+#include <omp.h>
+
 #include "device_support.h"
 #include "image_operations.h"
 #include "profiling.h"
 #include "types.h"
+#include "zncc_operations.h"
 
 #define IMAGE_PATH_LEFT "./test_images/im0.png"
 #define IMAGE_PATH_RIGHT "./test_images/im1.png"
@@ -36,6 +39,8 @@
 
 #define err_check(e) check_cl_error_with_file_line(__FILE__, __LINE__, e)
 
+#define OUTPUT_INTERMEDIATE_IMAGES 1
+
 void enqueue_downscaling_work(
     cl_command_queue queue,
     cl_kernel        kernel,
@@ -60,9 +65,6 @@ void enqueue_zncc_work(
     cl_command_queue queue,
     cl_kernel        kernel,
     const uint32_t   N,
-    const uint32_t   M,
-    const uint32_t   W,
-    const uint32_t   H,
     const int32_t    direction,
     const uint32_t   max_disparity,
     cl_mem           img_left,
@@ -98,12 +100,13 @@ void enqueue_zero_fill_work(
 
 int main() {
     PROFILING_BLOCK_DECLARE(total_runtime);
+    PROFILING_BLOCK_DECLARE(opencl_runtime_setup);
     PROFILING_BLOCK_DECLARE(preprocessing);
     PROFILING_BLOCK_DECLARE(zncc_calculation);
     PROFILING_BLOCK_DECLARE(postprocessing);
 
     PROFILING_BLOCK_BEGIN(total_runtime);
-    PROFILING_BLOCK_BEGIN(preprocessing);
+    PROFILING_BLOCK_BEGIN(opencl_runtime_setup);
 
     // setup OpenCL environment
     cl_int           err           = CL_SUCCESS;
@@ -159,6 +162,9 @@ int main() {
     err_check(err);
 
     print_device_info(dev);
+
+    PROFILING_BLOCK_END(opencl_runtime_setup);
+    PROFILING_BLOCK_BEGIN(preprocessing);
 
     // load images
     printf("loading input images into memory...\n");
@@ -265,6 +271,7 @@ int main() {
     err = clFinish(queue);
     err_check(err);
 
+#if OUTPUT_INTERMEDIATE_IMAGES == 1
     // output intermediate images
     rgba_img_t ds_l = {.img = NULL, .width = W_ds, .height = H_ds};
     rgba_img_t ds_r = {.img = NULL, .width = W_ds, .height = H_ds};
@@ -281,6 +288,10 @@ int main() {
 
     output_image("./output_images/tmp_ds_l.png", &ds_l, RGBA, NULL);
     output_image("./output_images/tmp_ds_r.png", &ds_r, RGBA, NULL);
+
+    free(ds_l.img);
+    free(ds_r.img);
+#endif
 
     // execute grayscaling work for left and right images
     printf("grayscaling input images...\n");
@@ -320,26 +331,31 @@ int main() {
 
     PROFILING_BLOCK_END(preprocessing);
 
+#if OUTPUT_INTERMEDIATE_IMAGES == 1
     // output intermediate images to check them
-    float_img_t gs_left = {
+    float_img_t gs_l = {
         .img = NULL, .max = 255.0f, .width = W_ds, .height = H_ds
     };
-    float_img_t gs_right = {
+    float_img_t gs_r = {
         .img = NULL, .max = 255.0f, .width = W_ds, .height = H_ds
     };
 
-    gs_left.img = read_device_image(
+    gs_l.img = read_device_image(
         queue, dev_image_gs_left, W_ds, H_ds, sizeof(float), &err
     );
     err_check(err);
 
-    gs_right.img = read_device_image(
+    gs_r.img = read_device_image(
         queue, dev_image_gs_right, W_ds, H_ds, sizeof(float), &err
     );
     err_check(err);
 
-    output_image("./output_images/tmp_gs_l.png", &gs_left, GS_FLOAT, NULL);
-    output_image("./output_images/tmp_gs_r.png", &gs_right, GS_FLOAT, NULL);
+    output_image("./output_images/tmp_gs_l.png", &gs_l, GS_FLOAT, NULL);
+    output_image("./output_images/tmp_gs_r.png", &gs_r, GS_FLOAT, NULL);
+
+    free(gs_l.img);
+    free(gs_r.img);
+#endif
 
     // do ZNCC calculations
     PROFILING_BLOCK_BEGIN(zncc_calculation);
@@ -368,16 +384,10 @@ int main() {
     );
     err_check(err);
 
-#define ZNCC_W_SEGMENTS 1
-#define ZNCC_H_SEGMENTS NUM_ROWS
-
     enqueue_zncc_work(
         queue,
         zncc_k,
-        ZNCC_H_SEGMENTS,
-        ZNCC_W_SEGMENTS,
-        W_ds,
-        H_ds,
+        NUM_ROWS,
         1,
         MAX_DISP,
         dev_image_gs_left,
@@ -391,10 +401,7 @@ int main() {
     enqueue_zncc_work(
         queue,
         zncc_k,
-        ZNCC_H_SEGMENTS,
-        ZNCC_W_SEGMENTS,
-        W_ds,
-        H_ds,
+        NUM_ROWS,
         -1,
         MAX_DISP,
         dev_image_gs_left,
@@ -448,23 +455,20 @@ int main() {
     err = clFinish(queue);
     err_check(err);
 
-    enqueue_zero_fill_work(
-        queue,
-        zero_fill_k,
-        1,
-        W_ds,
-        H_ds,
-        dev_combined_image,
-        &prof_evt_zero_fill,
-        &err
-    );
-    err_check(err);
+    // enqueue_zero_fill_work(
+    //     queue,
+    //     zero_fill_k,
+    //     1,
+    //     W_ds,
+    //     H_ds,
+    //     dev_combined_image,
+    //     &prof_evt_zero_fill,
+    //     &err
+    // );
+    // err_check(err);
 
-    err = clFinish(queue);
-    err_check(err);
-
-    PROFILING_BLOCK_END(postprocessing);
-    PROFILING_BLOCK_END(total_runtime);
+    // err = clFinish(queue);
+    // err_check(err);
 
     int32_img_t depthmap = {
         .img = NULL, .max = MAX_DISP, .width = W_ds, .height = H_ds
@@ -473,6 +477,38 @@ int main() {
         queue, dev_combined_image, W_ds * H_ds * sizeof(int32_t), &err
     );
     err_check(err);
+
+    printf("filling empty regions (on host)...\n");
+
+#pragma omp parallel
+    {
+        int          num_threads = omp_get_num_threads();
+        int          thread_id   = omp_get_thread_num();
+        uint8_t     *visited     = malloc(W_ds * H_ds * sizeof(uint8_t));
+        coord_fifo_t fifo        = {
+                   .storage  = malloc(W_ds * H_ds * sizeof(coord_t)),
+                   .read     = 0,
+                   .write    = 0,
+                   .capacity = W_ds * H_ds
+        };
+
+        for (uint32_t y = thread_id; y < H_ds; y += num_threads) {
+            for (uint32_t x = 0; x < W_ds; ++x) {
+                int32_t curr = depthmap.img[(y * W_ds) + x];
+                if (curr == 0) {
+                    int32_t nnzn = find_nearest_nonzero_neighbour(
+                        depthmap.img, W_ds, H_ds, x, y, visited, &fifo
+                    );
+                    depthmap.img[(y * W_ds) + x] = nnzn;
+                }
+            }
+        }
+        free(fifo.storage);
+        free(visited);
+    }
+
+    PROFILING_BLOCK_END(postprocessing);
+    PROFILING_BLOCK_END(total_runtime);
 
     img_write_result_t r = {.err = 0};
     output_image(IMAGE_PATH_OUT, &depthmap, GS_INT32, &r);
@@ -504,6 +540,7 @@ int main() {
     PROFILING_RAW_PRINT_US("postprocessing", postprocess_ns);
 
     printf("\nhost program profiling blocks:\n");
+    PROFILING_BLOCK_PRINT_MS(opencl_runtime_setup);
     PROFILING_BLOCK_PRINT_MS(preprocessing);
     PROFILING_BLOCK_PRINT_S(zncc_calculation);
     PROFILING_BLOCK_PRINT_MS(postprocessing);
@@ -586,9 +623,6 @@ void enqueue_zncc_work(
     cl_command_queue queue,
     cl_kernel        kernel,
     const uint32_t   N,
-    const uint32_t   M,
-    const uint32_t   W_i,
-    const uint32_t   H_i,
     const int32_t    direction,
     const uint32_t   max_disparity,
     cl_mem           img_left,
@@ -603,19 +637,16 @@ void enqueue_zncc_work(
     }
 
     SET_KERNEL_ARG(0, uint32_t, &N);
-    SET_KERNEL_ARG(1, uint32_t, &M);
-    SET_KERNEL_ARG(2, uint32_t, &W_i);
-    SET_KERNEL_ARG(3, uint32_t, &H_i);
-    SET_KERNEL_ARG(4, int32_t, &direction);
-    SET_KERNEL_ARG(5, uint32_t, &max_disparity);
-    SET_KERNEL_ARG(6, cl_mem, &img_left);
-    SET_KERNEL_ARG(7, cl_mem, &img_right);
-    SET_KERNEL_ARG(8, cl_mem, &disp_img_out);
+    SET_KERNEL_ARG(1, int32_t, &direction);
+    SET_KERNEL_ARG(2, uint32_t, &max_disparity);
+    SET_KERNEL_ARG(3, cl_mem, &img_left);
+    SET_KERNEL_ARG(4, cl_mem, &img_right);
+    SET_KERNEL_ARG(5, cl_mem, &disp_img_out);
 
-    const size_t global_ids[2] = {N, M};
+    const size_t global_id = N;
 
     internal_err = clEnqueueNDRangeKernel(
-        queue, kernel, 2, NULL, global_ids, NULL, 0, NULL, profiling_evt
+        queue, kernel, 1, NULL, &global_id, NULL, 0, NULL, profiling_evt
     );
     if (internal_err != CL_SUCCESS) {
         *err = internal_err;

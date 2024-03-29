@@ -68,7 +68,9 @@ cl_program compile_program_from_file(
 
     internal_err = clBuildProgram(program, 1, &dev, "-Werror", NULL, NULL);
     if (internal_err != CL_SUCCESS) {
-        print_build_log(program, dev);
+        if (internal_err == CL_BUILD_PROGRAM_FAILURE) {
+            print_build_log(program, dev);
+        }
         *err = internal_err;
         return NULL;
     }
@@ -77,8 +79,8 @@ cl_program compile_program_from_file(
     return program;
 }
 
-// 16 kB buffer should be plenty, right?
-#define BUILD_LOG_SIZE (16 * 1024)
+// 64 kB buffer should be plenty, right?
+#define BUILD_LOG_SIZE (64 * 1024)
 
 void print_build_log(cl_program program, cl_device_id dev) {
     static char build_log[BUILD_LOG_SIZE];
@@ -96,8 +98,12 @@ void print_build_log(cl_program program, cl_device_id dev) {
 
     printf("OpenCL program build log: \n%s\n", (const char *)build_log);
 
-    if (build_log_len == BUILD_LOG_SIZE - 1) {
-        printf("WARNING: build log may have been truncated...");
+    if (build_log_len >= BUILD_LOG_SIZE - 1) {
+        printf(
+            "WARNING: build log may have been truncated... (reported length: "
+            "%zu)\n",
+            build_log_len
+        );
     }
 }
 

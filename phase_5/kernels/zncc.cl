@@ -127,9 +127,6 @@ void extract_normalized_window(
 
 __kernel void calculate_zncc(
     const unsigned int N,
-    const unsigned int M,
-    const unsigned int W,
-    const unsigned int H,
     const int direction, // negative for right to left, positive for left to right
     const unsigned int max_disparity,
     read_only image2d_t img_left,
@@ -144,44 +141,33 @@ __kernel void calculate_zncc(
     // N is number of sections the image height is divided into.
     // i determines the rows of the section the kernel should operate on
 
-    // M is the number of sections the image width is divided into
-    // j determines the columns of the section the kernel should operate on
+    // both have same dimensions
+    const int W = get_image_width(img_left);
+    const int H = get_image_height(img_left);
 
-    // W is image width
-    // H is image height
+    const int i = get_global_id(0);
 
-    const unsigned int i = get_global_id(0);
-    const unsigned int j = get_global_id(1);
+    const int mh = H % N;        // modulo height
+    const int sh = (H - mh) / N; // segment height
+    const int ly = sh * i;       // low y
+    const int hy = sh * (i + 1) + ((i == (N-1)) ? mh : 0); // high y
 
-    const unsigned int mh = H % N;        // modulo height
-    const unsigned int sh = (H - mh) / N; // segment height
-    const unsigned int ly = sh * i;         // low y
-    const unsigned int hy = sh * (i + 1) + ((i == (N-1)) ? mh : 0); // high y
-
-    const unsigned int mw = W % M;        // modulo width
-    const unsigned int sw = (W - mw) / M; // segment width
-    const unsigned int lx = sw * j;         // low x
-    const unsigned int hx = sw * (j + 1) + ((j == (M-1)) ? mw : 0); // high x
-
-    unsigned int y = 0;
-    unsigned int x = 0;
-
-    int2 image_dimensions = (int2)(H, W);
+    const int2 image_dimensions = (int2)(W, H);
 
     __private float window_left[WINDOW_SIZE];
     __private float window_right[WINDOW_SIZE];
-    
+
     if (direction < 0) {
         // right to left
-        for (y = ly; y < hy; ++y) {
-            for (x = lx; x < hx; ++x) {
+        for (int y = ly; y < hy; ++y) {
+            for (int x = 0; x < W; ++x) {
                 float max_sum = 0.0f;
                 int best_disparity = 0;
 
                 int2 coord_r = (int2)(x, y);
                 extract_normalized_window(coord_r, image_dimensions, img_right, window_right);
 
-                for (int d = 0; d < min(W - x - 1, max_disparity); ++d) {
+                for (int d = 0; d < min(W - x, (int)max_disparity); ++d) {
                     int2 coord_l = (int2)(x + d, y);
 
                     extract_normalized_window(coord_l, image_dimensions, img_left, window_left);
@@ -199,9 +185,8 @@ __kernel void calculate_zncc(
         }
     } else {
         // left to right
-
-        for (y = ly; y < hy; ++y) {
-            for (x = lx; x < hx; ++x) {
+        for (int y = ly; y < hy; ++y) {
+            for (int x = 0; x < W; ++x) {
                 float max_sum = 0.0f;
                 int best_disparity = 0;
 
@@ -209,7 +194,7 @@ __kernel void calculate_zncc(
 
                 extract_normalized_window(coord_l, image_dimensions, img_left, window_left);
 
-                for (int d = 0; d < min(x, max_disparity); ++d) {
+                for (int d = 0; d < min(x, (int)max_disparity); ++d) {
                     int2 coord_r = (int2)(x - d, y);
                     extract_normalized_window(coord_r, image_dimensions, img_right, window_right);
 
@@ -264,9 +249,114 @@ __kernel void cross_check(
     }
 }
 
+int find_horizontal_linear_avg_to_nonzero_neighbours(__global int *d, int2 coord, int2 dim) {
+    int2 left = {coord.x, 0}; // x is x, s1 is value
+    int2 right = {coord.x, 0}; // x is x, s1 is value
+
+    // find left
+    while (left.s1 == 0) {
+        left.x -= 1;
+        left.s1 = d[(coord.y * dim.x) + left.x];
+        if (left.x <= 0) {
+            break;
+        }
+    }
+
+    // find right
+    while (right.s1 == 0) {
+        left.x += 1;
+        left.s1 = d[(coord.y * dim.x) + right.x];
+        if (right.x >= dim.x) {
+            break;
+        }
+    }
+
+    if (left.s1 == 0 && right.s1 == 0) {
+        return 0;
+    }
+
+    if (left.s1 == 0 && right.s1 != 0) {
+        return right.s1;
+    }
+
+    if (left.s1 != 0 && right.s1 == 0) {
+        return left.s1;
+    }
+    
+    
+    // linear interpolation
+    return ((left.x * right.s1) + (right.x * left.s1) / (right.x - left.x));
+}
+
+int find_vertical_linear_avg_to_nonzero_neighbours(__global int *d, int2 coord, int2 dim) {
+    int2 top = {0, coord.y}; // y is y, s0 is value
+    int2 bottom = {0, coord.y}; // y is y, s0 is value
+
+    // find top
+    while (top.s0 == 0) {
+        top.y -= 1;
+        top.s0 = d[(top.y * dim.x) + coord.x];
+        if (top.y <= 0) {
+            break;
+        }
+    }
+    
+    // find bottom
+    while(bottom.s0 == 0) {
+        top.y += 1;
+        top.s0 = d[(top.y * dim.x) + coord.x];
+        if (top.y >= dim.y) {
+            break;
+        }
+    }
+
+    if (top.s0 == 0 && bottom.s0 == 0) {
+        return 0;
+    }
+
+    if (top.s0 == 0 && bottom.s0 != 0) {
+        return bottom.s0;
+    }
+
+    if (top.s0 != 0 && bottom.s0 == 0) {
+        return top.s0;
+    }
+    
+    
+    // linear interpolation
+    return ((top.y * bottom.s0) + (bottom.y * top.s0) / (bottom.y - top.y));
+}
+
 __kernel void fill_zero_regions(
     const unsigned int N,
     const unsigned int W,
     const unsigned int H,
     __global int *d
-) {}
+) {
+    // N is number of sections the image height is divided into.
+    // i determines the rows of the section the kernel should operate on
+
+    // W is image width
+    // H is image height
+
+    const unsigned int i = get_global_id(0);
+
+    const unsigned int mh = H % N;        // modulo height
+    const unsigned int sh = (H - mh) / N; // segment height
+    const unsigned int ly = sh * i;       // low y
+    const unsigned int hy = sh * (i + 1) + ((i == (N-1)) ? mh : 0); // high y
+
+    // do linear interpolation along x and y axes, don't need any FIFO etc for that.
+
+    for (unsigned int y = ly; y < hy; ++y) {
+        for (unsigned int x = 0; x < W; ++x) {
+            int v = d[(y*W)+x];
+            if (v == 0) {
+                int ha = find_horizontal_linear_avg_to_nonzero_neighbours(d, (int2)(x, y), (int2)(W, H));
+                int va = find_vertical_linear_avg_to_nonzero_neighbours(d, (int2)(x, y), (int2)(W, H));
+
+                d[(y * W) + x] = (ha + va) / 2;
+            }
+        }
+    }
+}

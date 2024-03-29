@@ -9,13 +9,13 @@ CUDA_LIB_DIR = /usr/local/cuda-12.3/lib64/
 
 CC = clang
 LD = clang
-CFLAGS = -g -O2 -Wall -DCL_TARGET_OPENCL_VERSION=120
+CFLAGS = -g -O2 -Wall -DCL_TARGET_OPENCL_VERSION=120 -fopenmp
 
 # if you want to use AddressSanitizer, uncomment below and switch to clang
 #CFLAGS += -fsanitize=address -fno-omit-frame-pointer
 
 LDFLAGS = $(CFLAGS) -L $(CUDA_LIB_DIR) -Wl,-Map,$(BIN_DIR)/main.map
-LIBS = -lm -lc -lOpenCL
+LIBS = -lm -lc -lOpenCL -lomp -pthread
 
 C_SRC := \
 	main.c \
