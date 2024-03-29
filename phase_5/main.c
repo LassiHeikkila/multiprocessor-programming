@@ -40,10 +40,6 @@ void enqueue_downscaling_work(
     cl_command_queue queue,
     cl_kernel        kernel,
     const uint32_t   N,
-    const uint32_t   Wi,
-    const uint32_t   Hi,
-    const uint32_t   Wo,
-    const uint32_t   Ho,
     cl_mem           img_in,
     cl_mem           img_out,
     cl_event        *profiling_evt,
@@ -54,8 +50,6 @@ void enqueue_grayscaling_work(
     cl_command_queue queue,
     cl_kernel        kernel,
     const uint32_t   N,
-    const uint32_t   W,
-    const uint32_t   H,
     cl_mem           img_in,
     cl_mem           img_out,
     cl_event        *profiling_evt,
@@ -184,85 +178,60 @@ int main() {
     const uint32_t H_ds   = H_orig / DOWNSCALING_FACTOR_H;
 
     // create buffers for images and load original images into device memory
-    cl_mem dev_image_left, dev_image_right;        // originals
-    cl_mem dev_image_ds_left, dev_image_ds_right;  // downscaled
-    cl_mem dev_image_gs_left, dev_image_gs_right;  // grayscale
+    // originals
+    cl_mem dev_image_left  = NULL;
+    cl_mem dev_image_right = NULL;
+    // downscaled
+    cl_mem dev_image_ds_left  = NULL;
+    cl_mem dev_image_ds_right = NULL;
+    // grayscale
+    cl_mem dev_image_gs_left  = NULL;
+    cl_mem dev_image_gs_right = NULL;
 
-    const size_t          row_pitch_original = sizeof(rgba_t) * W_orig;
-    const size_t          row_pitch_ds       = sizeof(rgba_t) * W_ds;
-    const size_t          row_pitch_gs       = sizeof(float) * W_ds;
-    const cl_image_format image_format_rgba  = {CL_RGBA, CL_UNSIGNED_INT8};
-    const cl_image_format image_format_gs    = {CL_R, CL_FLOAT};
+    const cl_image_format image_format_rgba = {CL_RGBA, CL_UNSIGNED_INT8};
+    const cl_image_format image_format_gs   = {CL_R, CL_FLOAT};
 
-    dev_image_left = clCreateImage2D(
+    dev_image_left = allocate_2D_image(
         ctx,
-        CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+        queue,
         &image_format_rgba,
-        (size_t)W_orig,
-        (size_t)H_orig,
-        row_pitch_original,
+        W_orig,
+        H_orig,
+        sizeof(rgba_t),
         load_left.img_desc.img,
         &err
     );
     err_check(err);
 
-    dev_image_right = clCreateImage2D(
+    dev_image_right = allocate_2D_image(
         ctx,
-        CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+        queue,
         &image_format_rgba,
-        (size_t)W_orig,
-        (size_t)H_orig,
-        row_pitch_original,
+        W_orig,
+        H_orig,
+        sizeof(rgba_t),
         load_right.img_desc.img,
         &err
     );
     err_check(err);
 
-    dev_image_ds_left = clCreateImage2D(
-        ctx,
-        CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS,
-        &image_format_rgba,
-        (size_t)W_ds,
-        (size_t)H_ds,
-        row_pitch_ds,
-        NULL,
-        &err
+    dev_image_ds_left = allocate_2D_image(
+        ctx, NULL, &image_format_rgba, W_ds, H_ds, sizeof(rgba_t), NULL, &err
     );
     err_check(err);
 
-    dev_image_ds_right = clCreateImage2D(
-        ctx,
-        CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS,
-        &image_format_rgba,
-        (size_t)W_ds,
-        (size_t)H_ds,
-        row_pitch_ds,
-        NULL,
-        &err
+    dev_image_ds_right = allocate_2D_image(
+        ctx, NULL, &image_format_rgba, W_ds, H_ds, sizeof(rgba_t), NULL, &err
     );
     err_check(err);
 
-    dev_image_gs_left = clCreateImage2D(
-        ctx,
-        CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS,
-        &image_format_gs,
-        (size_t)W_ds,
-        (size_t)H_ds,
-        row_pitch_gs,
-        NULL,
-        &err
+    dev_image_gs_left = allocate_2D_image(
+        ctx, NULL, &image_format_gs, W_ds, H_ds, sizeof(float), NULL, &err
     );
     err_check(err);
 
-    dev_image_gs_right = clCreateImage2D(
-        ctx,
-        CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS,
-        &image_format_gs,
-        (size_t)W_ds,
-        (size_t)H_ds,
-        row_pitch_gs,
-        NULL,
-        &err
+    dev_image_gs_right = allocate_2D_image(
+        ctx, NULL, &image_format_gs, W_ds, H_ds, sizeof(float), NULL, &err
     );
     err_check(err);
 
@@ -275,10 +244,6 @@ int main() {
         queue,
         downscaling_k,
         NUM_ROWS,
-        W_orig,
-        H_orig,
-        W_ds,
-        H_ds,
         dev_image_left,
         dev_image_ds_left,
         &prof_evt_ds_left,
@@ -290,10 +255,6 @@ int main() {
         queue,
         downscaling_k,
         NUM_ROWS,
-        W_orig,
-        H_orig,
-        W_ds,
-        H_ds,
         dev_image_right,
         dev_image_ds_right,
         &prof_evt_ds_right,
@@ -304,6 +265,23 @@ int main() {
     err = clFinish(queue);
     err_check(err);
 
+    // output intermediate images
+    rgba_img_t ds_l = {.img = NULL, .width = W_ds, .height = H_ds};
+    rgba_img_t ds_r = {.img = NULL, .width = W_ds, .height = H_ds};
+
+    ds_l.img = read_device_image(
+        queue, dev_image_ds_left, W_ds, H_ds, sizeof(rgba_t), &err
+    );
+    err_check(err);
+
+    ds_r.img = read_device_image(
+        queue, dev_image_ds_right, W_ds, H_ds, sizeof(rgba_t), &err
+    );
+    err_check(err);
+
+    output_image("./output_images/tmp_ds_l.png", &ds_l, RGBA, NULL);
+    output_image("./output_images/tmp_ds_r.png", &ds_r, RGBA, NULL);
+
     // execute grayscaling work for left and right images
     printf("grayscaling input images...\n");
     cl_event prof_evt_gs_left  = NULL;
@@ -313,8 +291,6 @@ int main() {
         queue,
         grayscaling_k,
         NUM_ROWS,
-        W_ds,
-        H_ds,
         dev_image_ds_left,
         dev_image_gs_left,
         &prof_evt_gs_left,
@@ -326,8 +302,6 @@ int main() {
         queue,
         grayscaling_k,
         NUM_ROWS,
-        W_ds,
-        H_ds,
         dev_image_ds_right,
         dev_image_gs_right,
         &prof_evt_gs_right,
@@ -345,6 +319,27 @@ int main() {
     clReleaseMemObject(dev_image_ds_right);
 
     PROFILING_BLOCK_END(preprocessing);
+
+    // output intermediate images to check them
+    float_img_t gs_left = {
+        .img = NULL, .max = 255.0f, .width = W_ds, .height = H_ds
+    };
+    float_img_t gs_right = {
+        .img = NULL, .max = 255.0f, .width = W_ds, .height = H_ds
+    };
+
+    gs_left.img = read_device_image(
+        queue, dev_image_gs_left, W_ds, H_ds, sizeof(float), &err
+    );
+    err_check(err);
+
+    gs_right.img = read_device_image(
+        queue, dev_image_gs_right, W_ds, H_ds, sizeof(float), &err
+    );
+    err_check(err);
+
+    output_image("./output_images/tmp_gs_l.png", &gs_left, GS_FLOAT, NULL);
+    output_image("./output_images/tmp_gs_r.png", &gs_right, GS_FLOAT, NULL);
 
     // do ZNCC calculations
     PROFILING_BLOCK_BEGIN(zncc_calculation);
@@ -472,38 +467,15 @@ int main() {
     PROFILING_BLOCK_END(total_runtime);
 
     int32_img_t depthmap = {
-        .img    = malloc(W_ds * H_ds * sizeof(int32_t)),
-        .max    = MAX_DISP,
-        .width  = W_ds,
-        .height = H_ds
+        .img = NULL, .max = MAX_DISP, .width = W_ds, .height = H_ds
     };
-    memset(depthmap.img, 1, W_ds * H_ds * sizeof(int32_t));
-
-    err = clEnqueueReadBuffer(
-        queue,
-        dev_combined_image,
-        CL_TRUE,
-        0,
-        W_ds * H_ds * sizeof(int32_t),
-        (void *)depthmap.img,
-        0,
-        NULL,
-        NULL
+    depthmap.img = read_device_memory(
+        queue, dev_combined_image, W_ds * H_ds * sizeof(int32_t), &err
     );
-    err_check(err);
-
-    err = clFinish(queue);
     err_check(err);
 
     img_write_result_t r = {.err = 0};
-    output_grayscale_int32_image(
-        IMAGE_PATH_OUT,
-        depthmap.img,
-        depthmap.width,
-        depthmap.height,
-        depthmap.max,
-        &r
-    );
+    output_image(IMAGE_PATH_OUT, &depthmap, GS_INT32, &r);
     if (r.err != 0) {
         printf("error outputting depthmap: %d\n", r.err);
     }
@@ -552,8 +524,6 @@ void enqueue_grayscaling_work(
     cl_command_queue queue,
     cl_kernel        kernel,
     const uint32_t   N,
-    const uint32_t   Wi,
-    const uint32_t   Hi,
     cl_mem           img_in,
     cl_mem           img_out,
     cl_event        *profiling_evt,
@@ -565,10 +535,8 @@ void enqueue_grayscaling_work(
     }
 
     SET_KERNEL_ARG(0, uint32_t, &N)
-    SET_KERNEL_ARG(1, uint32_t, &Wi)
-    SET_KERNEL_ARG(2, uint32_t, &Hi)
-    SET_KERNEL_ARG(3, cl_mem, &img_in)
-    SET_KERNEL_ARG(4, cl_mem, &img_out)
+    SET_KERNEL_ARG(1, cl_mem, &img_in)
+    SET_KERNEL_ARG(2, cl_mem, &img_out)
 
     const size_t global_id = N;
 
@@ -587,10 +555,6 @@ void enqueue_downscaling_work(
     cl_command_queue queue,
     cl_kernel        kernel,
     const uint32_t   N,
-    const uint32_t   Wi,
-    const uint32_t   Hi,
-    const uint32_t   Wo,
-    const uint32_t   Ho,
     cl_mem           img_in,
     cl_mem           img_out,
     cl_event        *profiling_evt,
@@ -602,12 +566,8 @@ void enqueue_downscaling_work(
     }
 
     SET_KERNEL_ARG(0, uint32_t, &N)
-    SET_KERNEL_ARG(1, uint32_t, &Wi)
-    SET_KERNEL_ARG(2, uint32_t, &Hi)
-    SET_KERNEL_ARG(3, uint32_t, &Wo)
-    SET_KERNEL_ARG(4, uint32_t, &Ho)
-    SET_KERNEL_ARG(5, cl_mem, &img_in)
-    SET_KERNEL_ARG(6, cl_mem, &img_out)
+    SET_KERNEL_ARG(1, cl_mem, &img_in)
+    SET_KERNEL_ARG(2, cl_mem, &img_out)
 
     const size_t global_id = N;
 
