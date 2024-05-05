@@ -39,5 +39,9 @@ Algorithm kernels are written using OpenCL for phases 5 and 6.
 ## Phase 6 - Algorithmic and implementation optimization for OpenCL in CPU/GPU
 [Phase 6](./phase_6/README.md)
 
+Not completed.
+
 ## Phase 7 - Porting of the algorithm to WebGPU
 [Phase 7](./phase_7/README.md)
+
+Not completed.
