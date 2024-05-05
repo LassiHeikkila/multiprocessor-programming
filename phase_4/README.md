@@ -67,6 +67,7 @@ profiling block "total_runtime" took 0.975 s
 
 execution time 0.98 s
 peak memory use 501904 kB
+CPU usage: 817%
 ```
 
 > NOTE: both versions have progress printing disabled as it may impact execution time.

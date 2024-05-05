@@ -86,6 +86,7 @@ profiling block "total_runtime" took 3.759 s
 
 execution time 3.76 s
 peak memory use 496700 kB
+CPU usage: 99%
 ```
 
 ## Output depthmap

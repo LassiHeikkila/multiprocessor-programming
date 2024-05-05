@@ -38,7 +38,7 @@ Only the "fill zero regions" step of the post-processing is done in host code, a
 
 ## Output
 ```console
-$ /usr/bin/time -f "\n\nexecution time %e s\npeak memory use %M kB" bin/main
+$ /usr/bin/time -f "\n\nexecution time %e s\npeak memory use %M kB\nCPU usage: %P" bin/main
 set up OpenCL runtime...
 build OpenCL kernels...
 Device info dump:
@@ -83,6 +83,7 @@ profiling block "total_runtime" took 1.247 s
 
 execution time 1.28 s
 peak memory use 221176 k
+CPU usage: 176%
 ```
 
 Compared to [phase4](../phase_4/README.md), the performance is a little bit worse.
