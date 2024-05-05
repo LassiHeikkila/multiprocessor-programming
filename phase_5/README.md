@@ -68,25 +68,24 @@ postprocessing disparity data...
 filling empty regions (on host)...
 
 OpenCL profiling blocks:
-"downscaling" took 1011 µs
-"grayscaling" took 499 µs
-"zncc_calculation" took 784.702 ms
-"postprocessing" took 586 µs
+"downscaling" took 1007 µs
+"grayscaling" took 505 µs
+"zncc_calculation" took 786.737 ms
+"postprocessing" took 587 µs
 
 host program profiling blocks:
-profiling block "opencl_runtime_setup" took 1161.623 ms
-profiling block "preprocessing" took 390.399 ms
-profiling block "zncc_calculation" took 0.785 s
-profiling block "postprocessing" took 61.864 ms
-profiling block "total_runtime" took 2.487 s
+profiling block "opencl_runtime_setup" took 89.654 ms
+profiling block "preprocessing" took 270.180 ms
+profiling block "zncc_calculation" took 0.787 s
+profiling block "postprocessing" took 62.721 ms
+profiling block "total_runtime" took 1.247 s
 
 
-execution time 2.53 s
-peak memory use 281432 kB
+execution time 1.28 s
+peak memory use 221176 k
 ```
 
-Compared to [phase4](../phase_4/README.md), several steps are slower.
-Total runtime is about one second slower.
+Compared to [phase4](../phase_4/README.md), the performance is a little bit worse.
 
 There is clearly still plenty of room for improvement, especially regarding memory accesses within the OpenCL code.
 

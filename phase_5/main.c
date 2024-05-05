@@ -38,7 +38,7 @@
 
 #define err_check(e) check_cl_error_with_file_line(__FILE__, __LINE__, e)
 
-#define OUTPUT_INTERMEDIATE_IMAGES 1
+#define OUTPUT_INTERMEDIATE_IMAGES 0
 
 void enqueue_downscaling_work(
     cl_command_queue queue,

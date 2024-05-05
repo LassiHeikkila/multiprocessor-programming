@@ -56,33 +56,32 @@ pre-processing images...
 pre-processing data windows...
 computing depthmap left to right:
 computing depthmap right to left:
-outputting raw depthmaps
 cross-checking...
 filling empty regions...
 output crosschecked depthmap
-profiling block "preprocessing" took 425.571 ms
-profiling block "zncc_calculation" took 2.826 s
-profiling block "postprocessing" took 263.251 ms
-profiling block "total_runtime" took 4.118 s
+profiling block "preprocessing" took 98.696 ms
+profiling block "zncc_calculation" took 0.474 s
+profiling block "postprocessing" took 52.856 ms
+profiling block "total_runtime" took 0.975 s
 
 
-execution time 4.12 s
-peak memory use 496708 kB
+execution time 0.98 s
+peak memory use 501904 kB
 ```
 
 > NOTE: both versions have progress printing disabled as it may impact execution time.
 
 | Phase              | Execution time (single threaded) | Execution time (parallelized) | Speed up (ratio) |
 | ------------------ | -------------------------------: | ----------------------------: | ---------------: |
-| `preprocessing`    |                       425.571 ms |                     93.054 ms |             4.57 |
-| `zncc_calculation` |                          2.826 s |                       0.491 s |             5.76 |
-| `postprocessing`   |                       263.251 ms |                     68.267 ms |             3.86 |
-| `total_runtime`    |                          4.118 s |                       1.405 s |             2.93 |
+| `preprocessing`    |                       417.929 ms |                     98.696 ms |             4.23 |
+| `zncc_calculation` |                          2.779 s |                       0.474 s |             5.86 |
+| `postprocessing`   |                       228.263 ms |                     52.856 ms |             4.32 |
+| `total_runtime`    |                          3.759 s |                       0.975 s |             3.86 |
 
 The system used for these tests has 12 logical threads running on 6 physical CPU cores.
 OpenMP `omp_get_max_threads()` reports 12.
 
-We can see that each phase is accelerated by around 4-6 times and total program runtime about 3x.
+We can see that each phase is accelerated by around 4-6 times and total program runtime nearly 4x.
 
 The generated depthmap is found [here](./output_images/depthmap_cc.png) together with intermediate images.
 

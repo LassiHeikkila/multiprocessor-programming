@@ -75,18 +75,17 @@ pre-processing images...
 pre-processing data windows...
 computing depthmap left to right:
 computing depthmap right to left:
-outputting raw depthmaps
 cross-checking...
 filling empty regions...
 output crosschecked depthmap
-profiling block "preprocessing" took 425.571 ms
-profiling block "zncc_calculation" took 2.826 s
-profiling block "postprocessing" took 263.251 ms
-profiling block "total_runtime" took 4.118 s
+profiling block "preprocessing" took 417.929 ms
+profiling block "zncc_calculation" took 2.779 s
+profiling block "postprocessing" took 228.263 ms
+profiling block "total_runtime" took 3.759 s
 
 
-execution time 4.12 s
-peak memory use 496708 kB
+execution time 3.76 s
+peak memory use 496700 kB
 ```
 
 ## Output depthmap

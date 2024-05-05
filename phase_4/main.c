@@ -29,6 +29,7 @@
 #define CROSSCHECK_THRESHOLD 8
 
 #define PROGRESS_PRINTS 0
+#define OUTPUT_INTERMEDIATE_IMAGES 0
 
 int main() {
     // load images from disk
@@ -201,6 +202,7 @@ int main() {
 
     PROFILING_BLOCK_END(preprocessing);
 
+#if OUTPUT_INTERMEDIATE_IMAGES == 1
     {
         double_img_t tmp_mean_l = {
             .img    = mean_left,
@@ -245,6 +247,7 @@ int main() {
             "./output_images/std_right.png", &tmp_stddev_r, GS_DOUBLE, NULL
         );
     }
+#endif
 
     // don't need float input images anymore
     free(img_left_f.img);
@@ -354,8 +357,8 @@ int main() {
 
     PROFILING_BLOCK_END(zncc_calculation);
 
+#if OUTPUT_INTERMEDIATE_IMAGES == 1
     printf("outputting raw depthmaps\n");
-
     {
         int32_img_t disp_img_left = {
             .img    = disparity_image_left,
@@ -378,6 +381,7 @@ int main() {
             IMAGE_PATH_RAW_OUT_RIGHT_TO_LEFT, &disp_img_right, GS_INT32, NULL
         );
     }
+#endif
 
     int32_t *combined = malloc(sizeof(int32_t) * W * H);
     assert(combined != NULL);
